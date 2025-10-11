@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import TimerDisplay from "./TimerDisplay";
 import Controls from "./Controls";
 import { useState, useEffect } from "react";
+import { playNotificationSound } from "@/utils/sound";
 
 // タイマーのモードを表す型
 type Mode = "work" | "break";
@@ -61,6 +62,7 @@ export default function TimerApp() {
             if (prev.minutes === 0) {
               setIsRunning(false); // タイマーを停止
               toggleMode(); // モードを自動切り替え
+              void playNotificationSound(); // タイマー終了後に音声を再生
               return prev; //現在の状態(0分0秒)を返す
             }
             // 分数がまだ残っている場合は、分を1減らして秒を59にセット
