@@ -126,7 +126,7 @@ export default function TimerApp() {
           />
         </CardContent>
         <CardFooter className="flex flex-col gap-4 w-full max-w-[200px] mx-auto">
-          {/* 作業時間設定 */}
+          {/* 作業時間の設定 */}
           <div className="flex items-center gap-2">
             <label className="text-sm font-medium min-w-[4.5rem]">作業時間</label>
             <select
@@ -148,11 +148,11 @@ export default function TimerApp() {
             </select>
           </div>
 
-          {/* 休憩時間設定 */}
+          {/* 休憩時間の設定 */}
           <div className="flex items-center gap-2">
             <label className="text-sm font-medium min-w-[4.5rem]">休憩時間</label>
             <select
-              value={workDuration}
+              value={breakDuration}
               onChange={(e) => {
                 const newDuration = parseInt(e.target.value);
                 setBreakDuration(newDuration);
