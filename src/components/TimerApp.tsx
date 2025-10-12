@@ -2,6 +2,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import TimerDisplay from "./TimerDisplay";
 import Controls from "./Controls";
+import MetadataUpdater from "./MetadataUpdater";
 import { useState, useEffect } from "react";
 import { playNotificationSound } from "@/utils/sound";
 
@@ -72,7 +73,7 @@ export default function TimerApp() {
           //秒数が1以上の場合は、秒を1減らす
           return { ...prev, seconds: prev.seconds - 1 };
         });
-      }, 1);
+      }, 1000);
     }
     // クリーンアップ関数（コンポーネントのアンマウント時やisRunningが変わる前に実行される）
     return () => {
@@ -91,11 +92,7 @@ export default function TimerApp() {
           </CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col items-center gap-6">
-          <TimerDisplay
-            minutes={timeLeft.minutes}
-            seconds={timeLeft.seconds}
-            mode={mode}
-          />
+          <TimerDisplay minutes={timeLeft.minutes} seconds={timeLeft.seconds} mode={mode} />
           <Controls
             onStart={handleStart}
             onReset={handleReset}
@@ -103,6 +100,7 @@ export default function TimerApp() {
             isRunning={isRunning}
           />
         </CardContent>
+        <MetadataUpdater minutes={timeLeft.minutes} seconds={timeLeft.seconds} mode={mode} />
       </Card>
     </div>
   );
