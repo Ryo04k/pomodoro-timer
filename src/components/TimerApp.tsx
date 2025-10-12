@@ -13,8 +13,9 @@ export default function TimerApp() {
   // タイマーの実行状態を管理するstate
   const [isRunning, setIsRunning] = useState(false);
 
-  // 作業時間を管理する状態変数
+  // 作業時間・休憩時間を管理する状態変数
   const [workDuration, setWorkDuration] = useState(25);
+  const [breakDuration, setBreakDuration] = useState(5);
 
   // タイマーの残り時間を保持する状態変数
   const [timeLeft, setTimeLeft] = useState({ minutes: workDuration, seconds: 0 });
@@ -31,7 +32,7 @@ export default function TimerApp() {
     // モードに応じてタイマーの時間をリセット
     // 作業モードなら25分、休憩モードなら5分
     setTimeLeft({
-      minutes: newMode === "work" ? workDuration : 5,
+      minutes: newMode === "work" ? workDuration : breakDuration,
       seconds: 0,
     });
 
@@ -47,7 +48,7 @@ export default function TimerApp() {
   // リセットボタンのハンドラ
   const handleReset = () => {
     setIsRunning(false);
-    setTimeLeft({ minutes: mode === "work" ? workDuration : 5, seconds: 0 });
+    setTimeLeft({ minutes: mode === "work" ? workDuration : breakDuration, seconds: 0 });
   };
 
   useEffect(() => {
@@ -76,7 +77,7 @@ export default function TimerApp() {
           //秒数が1以上の場合は、秒を1減らす
           return { ...prev, seconds: prev.seconds - 1 };
         });
-      }, 1000);
+      }, 1);
     }
     // クリーンアップ関数（コンポーネントのアンマウント時やisRunningが変わる前に実行される）
     return () => {
@@ -103,25 +104,50 @@ export default function TimerApp() {
             isRunning={isRunning}
           />
         </CardContent>
-        <CardFooter className="flex justify-center gap-2 items-center">
-          <label className="text-sm font-medium">作業時間</label>
-          <select
-            value={workDuration}
-            onChange={(e) => {
-              const newDuration = parseInt(e.target.value);
-              setWorkDuration(newDuration);
-              if (mode === "work" && !isRunning) {
-                setTimeLeft({ minutes: newDuration, seconds: 0 });
-              }
-            }}
-            className="p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            {[5, 10, 15, 30, 45, 60].map((minutes) => (
-              <option key={minutes} value={minutes}>
-                {minutes}分
-              </option>
-            ))}
-          </select>
+        <CardFooter className="flex flex-col gap-4 w-full max-w-[200px] mx-auto">
+          {/* 作業時間設定 */}
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-medium min-w-[4.5rem]">作業時間</label>
+            <select
+              value={workDuration}
+              onChange={(e) => {
+                const newDuration = parseInt(e.target.value);
+                setWorkDuration(newDuration);
+                if (mode === "work" && !isRunning) {
+                  setTimeLeft({ minutes: newDuration, seconds: 0 });
+                }
+              }}
+              className="p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              {[5, 10, 15, 25, 30, 45, 60].map((minutes) => (
+                <option key={minutes} value={minutes}>
+                  {minutes}分
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* 休憩時間設定 */}
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-medium min-w-[4.5rem]">休憩時間</label>
+            <select
+              value={workDuration}
+              onChange={(e) => {
+                const newDuration = parseInt(e.target.value);
+                setBreakDuration(newDuration);
+                if (mode === "break" && !isRunning) {
+                  setTimeLeft({ minutes: newDuration, seconds: 0 });
+                }
+              }}
+              className="p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              {[5, 10, 15].map((minutes) => (
+                <option key={minutes} value={minutes}>
+                  {minutes}分
+                </option>
+              ))}
+            </select>
+          </div>
         </CardFooter>
         <MetadataUpdater minutes={timeLeft.minutes} seconds={timeLeft.seconds} mode={mode} />
       </Card>
