@@ -1,6 +1,7 @@
 "use client";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import TimerDisplay from "./TimerDisplay";
+import { Switch } from "@/components/ui/switch";
 import Controls from "./Controls";
 import MetadataUpdater from "./MetadataUpdater";
 import { useState, useEffect } from "react";
@@ -31,6 +32,9 @@ export default function TimerApp() {
   // モードの状態を管理する変数
   const [mode, setMode] = useState<Mode>("work");
 
+  //自動開始の設定
+  const [autoStart, setAutoStart] = useState(false);
+
   // モードを切り替える関数
   const toggleMode = () => {
     // 現在のモードを反対のモードに切り替える
@@ -44,8 +48,8 @@ export default function TimerApp() {
       seconds: 0,
     });
 
-    // タイマーを停止状態にする
-    setIsRunning(false);
+    // 自動開始がONの場合は次のセッションを自動的に開始
+    setIsRunning(autoStart);
   };
 
   //開始/停止ボタンのハンドラ
@@ -74,11 +78,13 @@ export default function TimerApp() {
             //分数が0の場合（タイマー終了）
             if (prev.minutes === 0) {
               setIsRunning(false); // タイマーを停止
-              toggleMode(); // モードを自動切り替え
               if (mode === "work") {
                 void confetti(); // 紙吹雪を表示
               }
               void playNotificationSound(); // タイマー終了後に音声を再生
+              setTimeout(() => {
+                toggleMode(); // モードを自動切り替え
+              }, 100);
               return prev; //現在の状態(0分0秒)を返す
             }
             // 分数がまだ残っている場合は、分を1減らして秒を59にセット
@@ -162,6 +168,12 @@ export default function TimerApp() {
                 </option>
               ))}
             </select>
+          </div>
+
+          {/* 自動開始の設定 */}
+          <div className="flex items-center gap-2 w-full justify-between">
+            <label className="text-sm font-medium min-w-[4.5rem]">自動開始</label>
+            <Switch checked={autoStart} onCheckedChange={() => setAutoStart(!autoStart)} />
           </div>
         </CardFooter>
         <MetadataUpdater minutes={timeLeft.minutes} seconds={timeLeft.seconds} mode={mode} />
