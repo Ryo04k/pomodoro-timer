@@ -7,6 +7,7 @@ import MetadataUpdater from "./MetadataUpdater";
 import { useState, useEffect } from "react";
 import { useReward } from "react-rewards";
 import { playNotificationSound } from "@/utils/sound";
+import { generateRefreshSuggestion } from "@/utils/gemini";
 
 // タイマーのモードを表す型
 type Mode = "work" | "break";
@@ -103,6 +104,14 @@ export default function TimerApp() {
       }
     };
   }, [isRunning]); // isRunningが変わったときだけこのエフェクトを再実行
+
+  useEffect(() => {
+    const testGemini = async () => {
+      const suggestion = await generateRefreshSuggestion();
+      console.log(suggestion);
+    };
+    testGemini();
+  }, []);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4 relative">
