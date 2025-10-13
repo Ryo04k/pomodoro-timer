@@ -4,6 +4,7 @@ import TimerDisplay from "./TimerDisplay";
 import { Switch } from "@/components/ui/switch";
 import Controls from "./Controls";
 import MetadataUpdater from "./MetadataUpdater";
+import RefreshSuggestion from "./RefreshSuggestion";
 import { useState, useEffect } from "react";
 import { useReward } from "react-rewards";
 import { playNotificationSound } from "@/utils/sound";
@@ -36,6 +37,9 @@ export default function TimerApp() {
   //自動開始の設定
   const [autoStart, setAutoStart] = useState(false);
 
+  //リフレッシュ提案
+  const [refreshSuggestion, setRefreshSuggestion] = useState<string | null>(null);
+
   // モードを切り替える関数
   const toggleMode = () => {
     // 現在のモードを反対のモードに切り替える
@@ -48,6 +52,13 @@ export default function TimerApp() {
       minutes: newMode === "work" ? workDuration : breakDuration,
       seconds: 0,
     });
+
+    // 休憩モードの場合は、Gemini APIを呼び出してリフレッシュ提案を取得
+    if (newMode === "break") {
+      generateRefreshSuggestion()
+        .then((suggestion) => setRefreshSuggestion(suggestion))
+        .catch(console.error);
+    }
 
     // 自動開始がONの場合は次のセッションを自動的に開始
     setIsRunning(autoStart);
@@ -104,14 +115,6 @@ export default function TimerApp() {
       }
     };
   }, [isRunning]); // isRunningが変わったときだけこのエフェクトを再実行
-
-  useEffect(() => {
-    const testGemini = async () => {
-      const suggestion = await generateRefreshSuggestion();
-      console.log(suggestion);
-    };
-    testGemini();
-  }, []);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4 relative">
@@ -187,6 +190,10 @@ export default function TimerApp() {
         </CardFooter>
         <MetadataUpdater minutes={timeLeft.minutes} seconds={timeLeft.seconds} mode={mode} />
       </Card>
+      <RefreshSuggestion
+        suggestion={refreshSuggestion}
+        onClose={() => setRefreshSuggestion(null)}
+      />
     </div>
   );
 }
