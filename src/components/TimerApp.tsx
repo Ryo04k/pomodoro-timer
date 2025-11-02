@@ -5,7 +5,7 @@ import { Switch } from "@/components/ui/switch";
 import Controls from "./Controls";
 import MetadataUpdater from "./MetadataUpdater";
 import RefreshSuggestion from "./RefreshSuggestion";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useReward } from "react-rewards";
 import { playNotificationSound } from "@/utils/sound";
 import { generateRefreshSuggestion } from "@/utils/gemini";
@@ -23,6 +23,75 @@ export default function TimerApp() {
 
   // タイマーの実行状態を管理するstate
   const [isRunning, setIsRunning] = useState(false);
+
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const bufferRef = useRef<AudioBuffer | null>(null);
+  const sourceRef = useRef<AudioBufferSourceNode | null>(null);
+  const gainRef = useRef<GainNode | null>(null);
+  const loadedOnceRef = useRef(false);
+
+  //雨音をセットアップする関数
+  const ensureLoaded = useCallback(async () => {
+    if (loadedOnceRef.current) return; // 既に読み込まれていれば何もしない
+    const Ctor: typeof AudioContext =
+      window.AudioContext || (window as unknown as typeof AudioContext); //ブラウザによる互換対応
+    const ctx = new Ctor();
+    audioCtxRef.current = ctx;
+
+    const response = await fetch("/rain_sound.mp3");
+    const arrayBuffer = await response.arrayBuffer();
+    const audioBuffer = await ctx.decodeAudioData(arrayBuffer); //音声データに変換
+    bufferRef.current = audioBuffer;
+
+    const gain = ctx.createGain();
+    gain.gain.value = 0.2;
+    gain.connect(ctx.destination);
+    gainRef.current = gain;
+
+    loadedOnceRef.current = true; // 一度読み込んだことを記録
+  }, []);
+
+  // 雨音を再生する関数
+  const startRainSound = useCallback(async () => {
+    await ensureLoaded();
+    const ctx = audioCtxRef.current;
+    const buf = bufferRef.current;
+    const gain = gainRef.current;
+
+    if (!ctx || !buf || !gain) return;
+
+    if (sourceRef.current) {
+      try {
+        sourceRef.current.stop();
+      } catch {}
+      sourceRef.current.disconnect();
+      sourceRef.current = null;
+    }
+
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    src.loop = true;
+    src.connect(gain);
+
+    // オーディオが停止状態の場合は再開する
+    if (ctx.state === "suspended") {
+      await ctx.resume();
+    }
+
+    src.start();
+    sourceRef.current = src;
+  }, [ensureLoaded]);
+
+  // 雨音を停止する関数
+  const stopRainSound = useCallback(() => {
+    const src = sourceRef.current;
+    if (!src) return;
+    try {
+      src.stop();
+    } catch {}
+    src.disconnect();
+    sourceRef.current = null;
+  }, []);
 
   // 作業時間・休憩時間を管理する状態変数
   const [workDuration, setWorkDuration] = useState(25);
@@ -66,12 +135,22 @@ export default function TimerApp() {
 
   //開始/停止ボタンのハンドラ
   const handleStart = () => {
-    setIsRunning(!isRunning);
+    setIsRunning((prev) => !prev);
   };
+
+  // isRunningまたはmodeが変わったときに雨音の再生/停止を制御
+  useEffect(() => {
+    if (isRunning && mode === "work") {
+      void startRainSound();
+    } else {
+      stopRainSound();
+    }
+  }, [isRunning, mode, startRainSound, stopRainSound]);
 
   // リセットボタンのハンドラ
   const handleReset = () => {
     setIsRunning(false);
+    stopRainSound();
     setTimeLeft({ minutes: mode === "work" ? workDuration : breakDuration, seconds: 0 });
   };
 
@@ -90,6 +169,7 @@ export default function TimerApp() {
             //分数が0の場合（タイマー終了）
             if (prev.minutes === 0) {
               setIsRunning(false); // タイマーを停止
+              stopRainSound(); // 雨音を停止
               if (mode === "work") {
                 void confetti(); // 紙吹雪を表示
               }
@@ -122,6 +202,7 @@ export default function TimerApp() {
         id="confettiReward"
         className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"
       />
+
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle className="text-2xl font-bold  text-center">
