@@ -135,16 +135,17 @@ export default function TimerApp() {
 
   //開始/停止ボタンのハンドラ
   const handleStart = () => {
-    setIsRunning((prev) => {
-      const next = !prev;
-      if (next) {
-        void startRainSound();
-      } else {
-        stopRainSound();
-      }
-      return next;
-    });
+    setIsRunning((prev) => !prev);
   };
+
+  // isRunningまたはmodeが変わったときに雨音の再生/停止を制御
+  useEffect(() => {
+    if (isRunning && mode === "work") {
+      void startRainSound();
+    } else {
+      stopRainSound();
+    }
+  }, [isRunning, mode, startRainSound, stopRainSound]);
 
   // リセットボタンのハンドラ
   const handleReset = () => {
