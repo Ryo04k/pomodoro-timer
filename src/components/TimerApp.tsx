@@ -149,6 +149,7 @@ export default function TimerApp() {
   // リセットボタンのハンドラ
   const handleReset = () => {
     setIsRunning(false);
+    stopRainSound();
     setTimeLeft({ minutes: mode === "work" ? workDuration : breakDuration, seconds: 0 });
   };
 
@@ -167,6 +168,7 @@ export default function TimerApp() {
             //分数が0の場合（タイマー終了）
             if (prev.minutes === 0) {
               setIsRunning(false); // タイマーを停止
+              stopRainSound(); // 雨音を停止
               if (mode === "work") {
                 void confetti(); // 紙吹雪を表示
               }
