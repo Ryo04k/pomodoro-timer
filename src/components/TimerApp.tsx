@@ -26,10 +26,7 @@ export default function TimerApp() {
   const [isRunning, setIsRunning] = useState(false);
 
   // 雨音の再生を管理するフック
-  const { play, stop, volume, setVolume, isMuted, toggleMute, ctxState } = useAudio(
-    "/rain_sound.mp3",
-    0.2
-  );
+  const { play, stop } = useAudio("/rain_sound.mp3", 0.2);
 
   // 作業時間・休憩時間を管理する状態変数
   const [workDuration, setWorkDuration] = useState(25);
@@ -87,7 +84,7 @@ export default function TimerApp() {
   // リセットボタンのハンドラ
   const handleReset = () => {
     setIsRunning(false);
-    audio.stop();
+    stop();
     setTimeLeft({ minutes: mode === "work" ? workDuration : breakDuration, seconds: 0 });
   };
 
@@ -106,7 +103,7 @@ export default function TimerApp() {
             //分数が0の場合（タイマー終了）
             if (prev.minutes === 0) {
               setIsRunning(false); // タイマーを停止
-              audio.stop(); // 雨音を停止
+              stop(); // 雨音を停止
               if (mode === "work") {
                 void confetti(); // 紙吹雪を表示
               }
