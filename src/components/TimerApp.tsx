@@ -5,7 +5,7 @@ import { Switch } from "@/components/ui/switch";
 import Controls from "./Controls";
 import MetadataUpdater from "./MetadataUpdater";
 import RefreshSuggestion from "./RefreshSuggestion";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { playNotificationSound } from "@/utils/sound";
 import { generateRefreshSuggestion } from "@/utils/gemini";
 import { useAudio } from "@/hooks/useAudio";
@@ -16,6 +16,8 @@ type Mode = "work" | "break";
 export default function TimerApp() {
   // タイマーの実行状態を管理するstate
   const [isRunning, setIsRunning] = useState(false);
+
+  const videoRef = useRef<HTMLVideoElement | null>(null);
 
   // 雨音の再生を管理するフック
   const { play, stop } = useAudio("/rain_sound.mp3", 0.2);
@@ -65,12 +67,21 @@ export default function TimerApp() {
     setIsRunning((prev) => !prev);
   };
 
-  // 雨音の再生制御
+  // 雨音と動画の再生制御
   useEffect(() => {
+    const videoElement = videoRef.current;
     if (isRunning && mode === "work") {
       void play();
+
+      if (videoElement) {
+        void videoElement.play();
+      }
     } else {
       stop();
+
+      if (videoElement) {
+        videoElement.pause();
+      }
     }
   }, [isRunning, mode, play, stop]);
 
@@ -123,6 +134,16 @@ export default function TimerApp() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4 relative">
+      <video
+        ref={videoRef}
+        src="/top_movie.mp4"
+        className=""
+        playsInline
+        muted // ← 自動再生を確実にしたい場合のみ使用
+        loop // ← 繰り返し再生したい場合のみ使用
+        preload="auto"
+      />
+
       <span
         id="confettiReward"
         className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"
