@@ -4,11 +4,7 @@ interface TimerDisplayProps {
   mode: "work" | "break";
 }
 
-export default function TimerDisplay({
-  minutes,
-  seconds,
-  mode,
-}: TimerDisplayProps) {
+export default function TimerDisplay({ minutes, seconds, mode }: TimerDisplayProps) {
   return (
     <div
       className={`text-6xl font-mono font-bold

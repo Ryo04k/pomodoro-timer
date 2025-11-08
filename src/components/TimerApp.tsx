@@ -5,93 +5,20 @@ import { Switch } from "@/components/ui/switch";
 import Controls from "./Controls";
 import MetadataUpdater from "./MetadataUpdater";
 import RefreshSuggestion from "./RefreshSuggestion";
-import { useState, useEffect, useRef, useCallback } from "react";
-import { useReward } from "react-rewards";
+import { useState, useEffect } from "react";
 import { playNotificationSound } from "@/utils/sound";
 import { generateRefreshSuggestion } from "@/utils/gemini";
+import { useAudio } from "@/hooks/useAudio";
 
 // タイマーのモードを表す型
 type Mode = "work" | "break";
 
 export default function TimerApp() {
-  const { reward: confetti } = useReward("confettiReward", "confetti", {
-    elementCount: 100,
-    spread: 70,
-    decay: 0.93,
-    lifetime: 150,
-  });
-
   // タイマーの実行状態を管理するstate
   const [isRunning, setIsRunning] = useState(false);
 
-  const audioCtxRef = useRef<AudioContext | null>(null);
-  const bufferRef = useRef<AudioBuffer | null>(null);
-  const sourceRef = useRef<AudioBufferSourceNode | null>(null);
-  const gainRef = useRef<GainNode | null>(null);
-  const loadedOnceRef = useRef(false);
-
-  //雨音をセットアップする関数
-  const ensureLoaded = useCallback(async () => {
-    if (loadedOnceRef.current) return; // 既に読み込まれていれば何もしない
-    const Ctor: typeof AudioContext =
-      window.AudioContext || (window as unknown as typeof AudioContext); //ブラウザによる互換対応
-    const ctx = new Ctor();
-    audioCtxRef.current = ctx;
-
-    const response = await fetch("/rain_sound.mp3");
-    const arrayBuffer = await response.arrayBuffer();
-    const audioBuffer = await ctx.decodeAudioData(arrayBuffer); //音声データに変換
-    bufferRef.current = audioBuffer;
-
-    const gain = ctx.createGain();
-    gain.gain.value = 0.2;
-    gain.connect(ctx.destination);
-    gainRef.current = gain;
-
-    loadedOnceRef.current = true; // 一度読み込んだことを記録
-  }, []);
-
-  // 雨音を再生する関数
-  const startRainSound = useCallback(async () => {
-    await ensureLoaded();
-    const ctx = audioCtxRef.current;
-    const buf = bufferRef.current;
-    const gain = gainRef.current;
-
-    if (!ctx || !buf || !gain) return;
-
-    if (sourceRef.current) {
-      try {
-        sourceRef.current.stop();
-      } catch {}
-      sourceRef.current.disconnect();
-      sourceRef.current = null;
-    }
-
-    const src = ctx.createBufferSource();
-    src.buffer = buf;
-    src.loop = true;
-    src.connect(gain);
-
-    // オーディオが停止状態の場合は再開する
-    if (ctx.state === "suspended") {
-      await ctx.resume();
-    }
-
-    src.start();
-    sourceRef.current = src;
-  }, [ensureLoaded]);
-
-  // 雨音を停止する関数
-  const stopRainSound = useCallback(() => {
-    const src = sourceRef.current;
-    if (!src) return;
-    try {
-      src.stop();
-    } catch {}
-    src.disconnect();
-    sourceRef.current = null;
-  }, []);
+  // 雨音の再生を管理するフック
+  const { play, stop } = useAudio("/rain_sound.mp3", 0.2);
 
   // 作業時間・休憩時間を管理する状態変数
   const [workDuration, setWorkDuration] = useState(25);
@@ -106,7 +33,7 @@ export default function TimerApp() {
   //自動開始の設定
   const [autoStart, setAutoStart] = useState(false);
 
-  //リフレッシュ提案
+  //休憩に入る時のリフレッシュ提案テキスト
   const [refreshSuggestion, setRefreshSuggestion] = useState<string | null>(null);
 
   // モードを切り替える関数
@@ -138,22 +65,23 @@ export default function TimerApp() {
     setIsRunning((prev) => !prev);
   };
 
-  // isRunningまたはmodeが変わったときに雨音の再生/停止を制御
+  // 雨音の再生制御
   useEffect(() => {
     if (isRunning && mode === "work") {
-      void startRainSound();
+      void play();
     } else {
-      stopRainSound();
+      stop();
     }
-  }, [isRunning, mode, startRainSound, stopRainSound]);
+  }, [isRunning, mode, play, stop]);
 
   // リセットボタンのハンドラ
   const handleReset = () => {
     setIsRunning(false);
-    stopRainSound();
+    stop();
     setTimeLeft({ minutes: mode === "work" ? workDuration : breakDuration, seconds: 0 });
   };
 
+  // タイマーのカウントダウン処理
   useEffect(() => {
     //setIntervalの戻り値(タイマーID)を保持する変数
     let intervalId: NodeJS.Timeout;
@@ -169,10 +97,7 @@ export default function TimerApp() {
             //分数が0の場合（タイマー終了）
             if (prev.minutes === 0) {
               setIsRunning(false); // タイマーを停止
-              stopRainSound(); // 雨音を停止
-              if (mode === "work") {
-                void confetti(); // 紙吹雪を表示
-              }
+              stop(); // 雨音を停止
               void playNotificationSound(); // タイマー終了後に音声を再生
               setTimeout(() => {
                 toggleMode(); // モードを自動切り替え
