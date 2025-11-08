@@ -6,7 +6,6 @@ import Controls from "./Controls";
 import MetadataUpdater from "./MetadataUpdater";
 import RefreshSuggestion from "./RefreshSuggestion";
 import { useState, useEffect } from "react";
-import { useReward } from "react-rewards";
 import { playNotificationSound } from "@/utils/sound";
 import { generateRefreshSuggestion } from "@/utils/gemini";
 import { useAudio } from "@/hooks/useAudio";
@@ -15,13 +14,6 @@ import { useAudio } from "@/hooks/useAudio";
 type Mode = "work" | "break";
 
 export default function TimerApp() {
-  const { reward: confetti } = useReward("confettiReward", "confetti", {
-    elementCount: 100,
-    spread: 70,
-    decay: 0.93,
-    lifetime: 150,
-  });
-
   // タイマーの実行状態を管理するstate
   const [isRunning, setIsRunning] = useState(false);
 
@@ -41,7 +33,7 @@ export default function TimerApp() {
   //自動開始の設定
   const [autoStart, setAutoStart] = useState(false);
 
-  //リフレッシュ提案
+  //休憩に入る時のリフレッシュ提案テキスト
   const [refreshSuggestion, setRefreshSuggestion] = useState<string | null>(null);
 
   // モードを切り替える関数
@@ -73,6 +65,7 @@ export default function TimerApp() {
     setIsRunning((prev) => !prev);
   };
 
+  // 雨音の再生制御
   useEffect(() => {
     if (isRunning && mode === "work") {
       void play();
@@ -88,6 +81,7 @@ export default function TimerApp() {
     setTimeLeft({ minutes: mode === "work" ? workDuration : breakDuration, seconds: 0 });
   };
 
+  // タイマーのカウントダウン処理
   useEffect(() => {
     //setIntervalの戻り値(タイマーID)を保持する変数
     let intervalId: NodeJS.Timeout;
@@ -104,9 +98,6 @@ export default function TimerApp() {
             if (prev.minutes === 0) {
               setIsRunning(false); // タイマーを停止
               stop(); // 雨音を停止
-              if (mode === "work") {
-                void confetti(); // 紙吹雪を表示
-              }
               void playNotificationSound(); // タイマー終了後に音声を再生
               setTimeout(() => {
                 toggleMode(); // モードを自動切り替え
@@ -120,7 +111,7 @@ export default function TimerApp() {
           //秒数が1以上の場合は、秒を1減らす
           return { ...prev, seconds: prev.seconds - 1 };
         });
-      }, 1000);
+      }, 1);
     }
     // クリーンアップ関数（コンポーネントのアンマウント時やisRunningが変わる前に実行される）
     return () => {

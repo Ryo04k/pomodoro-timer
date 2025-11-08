@@ -6,9 +6,6 @@ export type UseAudioReturn = {
   stop: () => void;
   volume: number;
   setVolume: (v: number) => void;
-  isMuted: boolean;
-  toggleMute: () => void;
-  ctxState: AudioContextState | null;
 };
 
 export function useAudio(src: string, initialVolume = 0.2): UseAudioReturn {
@@ -19,9 +16,26 @@ export function useAudio(src: string, initialVolume = 0.2): UseAudioReturn {
 
   const loadedOnceRef = useRef(false);
 
-  const [volume, setVolumeState] = useState(initialVolume);
-  const [isMuted, setMuted] = useState(false);
-  const [ctxState, setCtxState] = useState<AudioContextState | null>(null);
+  const [volume, setVolumeState] = useState(initialVolume); // 音量状態
+
+  //ダイアログから音量変更のイベントを受け取る
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const handleVolumeChange: EventListener = (event) => {
+      const { detail } = event as CustomEvent<number>;
+      if (typeof detail !== "number") return;
+
+      const clamped = Math.max(0, Math.min(1, detail));
+      setVolumeState(clamped);
+    };
+    window.addEventListener("timer-volume-change", handleVolumeChange);
+
+    // イベントリスナーを削除
+    return () => {
+      window.removeEventListener("timer-volume-change", handleVolumeChange);
+    };
+  }, []);
 
   // 音声データをセットアップ
   const ensureLoaded = useCallback(async () => {
@@ -31,7 +45,6 @@ export function useAudio(src: string, initialVolume = 0.2): UseAudioReturn {
       window.AudioContext || (window as unknown as typeof AudioContext); //ブラウザによる互換対応
     const ctx = new Ctor();
     audioCtxRef.current = ctx;
-    setCtxState(ctx.state);
 
     const res = await fetch(src);
     const arrBuf = await res.arrayBuffer();
@@ -39,12 +52,12 @@ export function useAudio(src: string, initialVolume = 0.2): UseAudioReturn {
     bufferRef.current = decoded;
 
     const gain = ctx.createGain();
-    gain.gain.value = isMuted ? 0 : volume;
+    gain.gain.value = Math.max(0, Math.min(1, volume));
     gain.connect(ctx.destination);
     gainRef.current = gain;
 
     loadedOnceRef.current = true;
-  }, [src]);
+  }, [src, volume]);
 
   const play = useCallback(async () => {
     await ensureLoaded();
@@ -54,18 +67,13 @@ export function useAudio(src: string, initialVolume = 0.2): UseAudioReturn {
 
     if (!ctx || !buf || !gain) return;
 
+    // 既に再生中なら何もしない（再生成を防ぐ）
     if (sourceRef.current) {
-      try {
-        sourceRef.current.stop();
-      } catch (e) {
-        console.error("エラーが発生しました。", e);
-      }
-      sourceRef.current.disconnect();
-      sourceRef.current = null;
+      return;
     }
+
     if (ctx.state === "suspended") {
       await ctx.resume();
-      setCtxState(ctx.state);
     }
 
     const srcNode = ctx.createBufferSource();
@@ -90,9 +98,13 @@ export function useAudio(src: string, initialVolume = 0.2): UseAudioReturn {
   // ボリュームを更新
   useEffect(() => {
     if (!gainRef.current) return;
+
+    // volumeを0〜1の範囲に丸めて安全に代入
     const safeVolume = Math.max(0, Math.min(1, volume));
-    gainRef.current.gain.value = isMuted ? 0 : safeVolume;
-  }, [volume, isMuted]);
+
+    // 音量を直接反映（スムーズ変化なし）
+    gainRef.current.gain.value = safeVolume;
+  }, [volume]);
 
   useEffect(() => {
     return () => {
@@ -105,7 +117,6 @@ export function useAudio(src: string, initialVolume = 0.2): UseAudioReturn {
       bufferRef.current = null;
       gainRef.current = null;
       loadedOnceRef.current = false;
-      setCtxState(null);
     };
   }, [src, stop]);
 
@@ -114,8 +125,5 @@ export function useAudio(src: string, initialVolume = 0.2): UseAudioReturn {
     stop,
     volume,
     setVolume: (v: number) => setVolumeState(Math.max(0, Math.min(1, v))),
-    isMuted,
-    toggleMute: () => setMuted((prev) => !prev),
-    ctxState,
   };
 }
