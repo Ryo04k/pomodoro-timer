@@ -1,5 +1,5 @@
 "use client";
-import { Dialog, DialogContent, DialogHeader } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Slider } from "@/components/ui/slider";
 import { useEffect, useState } from "react";
 
@@ -29,7 +29,9 @@ export default function VolumeDialog({ open, onOpenChange }: Props) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-sm">
-        <DialogHeader>雨音の調整</DialogHeader>
+        <DialogHeader>
+          <DialogTitle>雨音の調整</DialogTitle>
+        </DialogHeader>
         <div className="py-4">
           <Slider
             value={[Math.round(volume * 100)]}
