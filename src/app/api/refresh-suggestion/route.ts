@@ -14,13 +14,13 @@ export async function GET() {
     - 1~2分程度でできること
     - 室内でできること
     - 体を動かすこと
-    - 絵文字を1つ含めること
+    - 黒猫の絵文字を1つ含めること
     - 簡潔に1文の中に収めること
     - 「〜しよう」のように提案する形で終わること
 
     # 出力例
-    - 大きく背伸びしよう🙆
-    - 室内で少し歩こう🚶
+    - 大きく背伸びしよう🐈‍⬛
+    - 室内で少し歩こう🐈‍⬛
   `;
   const response = await ai.models.generateContent({
     model: "gemini-2.5-flash-lite",
