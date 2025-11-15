@@ -25,7 +25,7 @@ export default function RefreshSuggestion({ suggestion, onClose }: RefreshSugges
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 20 }}
-          className="fixed -bottom-4 left-1/2 transform -translate-x-1/2 bg-indigo-50 p-6 rounded-lg shadow-lg border border-indigo-200 w-full max-w-md"
+          className="fixed top-6 left-6 w-full max-w-md rounded-lg border border-indigo-200 bg-indigo-50/90 p-6 shadow-lg backdrop-blur-md"
         >
           <button
             onClick={onClose}

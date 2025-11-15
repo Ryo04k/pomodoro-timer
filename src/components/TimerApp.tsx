@@ -5,6 +5,7 @@ import { Switch } from "@/components/ui/switch";
 import Controls from "./Controls";
 import MetadataUpdater from "./MetadataUpdater";
 import RefreshSuggestion from "./RefreshSuggestion";
+import Header from "@/components/Header";
 import { useState, useEffect, useRef } from "react";
 import { playNotificationSound } from "@/utils/sound";
 import { generateRefreshSuggestion } from "@/utils/gemini";
@@ -122,7 +123,7 @@ export default function TimerApp() {
           //秒数が1以上の場合は、秒を1減らす
           return { ...prev, seconds: prev.seconds - 1 };
         });
-      }, 1);
+      }, 1000);
     }
     // クリーンアップ関数（コンポーネントのアンマウント時やisRunningが変わる前に実行される）
     return () => {
@@ -133,90 +134,106 @@ export default function TimerApp() {
   }, [isRunning]); // isRunningが変わったときだけこのエフェクトを再実行
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4 relative">
-      <video
-        ref={videoRef}
-        src="/top_movie.mp4"
-        className=""
-        playsInline
-        muted // ← 自動再生を確実にしたい場合のみ使用
-        loop // ← 繰り返し再生したい場合のみ使用
-        preload="auto"
-      />
+    <div className="relative h-full w-full bg-black">
+      <div className="relative h-full w-full overflow-hidden">
+        <video
+          ref={videoRef}
+          src="/top_movie02.mp4"
+          className="h-full w-full object-cover"
+          playsInline
+          muted
+          loop
+          preload="auto"
+        />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/70 via-black/25 to-transparent"
+        />
 
-      <span
-        id="confettiReward"
-        className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"
-      />
-
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle className="text-2xl font-bold  text-center">
-            {mode === "work" ? "作業時間" : "休憩時間"}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col items-center gap-6">
-          <TimerDisplay minutes={timeLeft.minutes} seconds={timeLeft.seconds} mode={mode} />
-          <Controls
-            onStart={handleStart}
-            onReset={handleReset}
-            onModeToggle={toggleMode}
-            isRunning={isRunning}
+        <div className="absolute inset-0 flex flex-col pt-0 px-4 py-6 sm:px-6">
+          <div className="-mx-4 sm:-mx-8 lg:-mx-10">
+            <Header />
+          </div>
+          <span
+            id="confettiReward"
+            className="pointer-events-none absolute right-8 top-12 lg:right-14 lg:top-14"
           />
-        </CardContent>
-        <CardFooter className="flex flex-col gap-4 w-full max-w-[200px] mx-auto">
-          {/* 作業時間の設定 */}
-          <div className="flex items-center gap-2">
-            <label className="text-sm font-medium min-w-[4.5rem]">作業時間</label>
-            <select
-              value={workDuration}
-              onChange={(e) => {
-                const newDuration = parseInt(e.target.value);
-                setWorkDuration(newDuration);
-                if (mode === "work" && !isRunning) {
-                  setTimeLeft({ minutes: newDuration, seconds: 0 });
-                }
-              }}
-              className="p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              {[5, 10, 15, 25, 30, 45, 60].map((minutes) => (
-                <option key={minutes} value={minutes}>
-                  {minutes}分
-                </option>
-              ))}
-            </select>
-          </div>
+          <div className="flex w-full justify-end pt-6">
+            <Card className="w-full max-w-sm rounded-sm border border-white/15 bg-black/25 text-white shadow-lg backdrop-blur">
+              <CardHeader>
+                <CardTitle className="text-center text-2xl font-semibold tracking-wide text-white">
+                  {mode === "work" ? "作業時間" : "休憩時間"}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-col items-center gap-6">
+                <TimerDisplay minutes={timeLeft.minutes} seconds={timeLeft.seconds} mode={mode} />
+                <Controls
+                  onStart={handleStart}
+                  onReset={handleReset}
+                  onModeToggle={toggleMode}
+                  isRunning={isRunning}
+                />
+              </CardContent>
+              <CardFooter className="mx-auto flex w-full max-w-[260px] flex-col gap-4 text-white">
+                {/* 作業時間の設定 */}
+                <div className="flex items-center gap-3">
+                  <label className="min-w-[4.5rem] text-sm font-medium text-white/90">
+                    作業時間
+                  </label>
+                  <select
+                    value={workDuration}
+                    onChange={(e) => {
+                      const newDuration = parseInt(e.target.value);
+                      setWorkDuration(newDuration);
+                      if (mode === "work" && !isRunning) {
+                        setTimeLeft({ minutes: newDuration, seconds: 0 });
+                      }
+                    }}
+                    className="w-full rounded-lg border border-white/20 bg-white/10 p-2 text-white focus:outline-none focus:ring-2 focus:ring-white/40"
+                  >
+                    {[5, 10, 15, 25, 30, 45, 60].map((minutes) => (
+                      <option key={minutes} value={minutes}>
+                        {minutes}分
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-          {/* 休憩時間の設定 */}
-          <div className="flex items-center gap-2">
-            <label className="text-sm font-medium min-w-[4.5rem]">休憩時間</label>
-            <select
-              value={breakDuration}
-              onChange={(e) => {
-                const newDuration = parseInt(e.target.value);
-                setBreakDuration(newDuration);
-                if (mode === "break" && !isRunning) {
-                  setTimeLeft({ minutes: newDuration, seconds: 0 });
-                }
-              }}
-              className="p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              {[5, 10, 15].map((minutes) => (
-                <option key={minutes} value={minutes}>
-                  {minutes}分
-                </option>
-              ))}
-            </select>
-          </div>
+                {/* 休憩時間の設定 */}
+                <div className="flex items-center gap-3">
+                  <label className="min-w-[4.5rem] text-sm font-medium text-white/90">
+                    休憩時間
+                  </label>
+                  <select
+                    value={breakDuration}
+                    onChange={(e) => {
+                      const newDuration = parseInt(e.target.value);
+                      setBreakDuration(newDuration);
+                      if (mode === "break" && !isRunning) {
+                        setTimeLeft({ minutes: newDuration, seconds: 0 });
+                      }
+                    }}
+                    className="w-full rounded-lg border border-white/20 bg-white/10 p-2 text-white focus:outline-none focus:ring-2 focus:ring-white/40"
+                  >
+                    {[5, 10, 15].map((minutes) => (
+                      <option key={minutes} value={minutes}>
+                        {minutes}分
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-          {/* 自動開始の設定 */}
-          <div className="flex items-center gap-2 w-full justify-between">
-            <label className="text-sm font-medium min-w-[4.5rem]">自動開始</label>
-            <Switch checked={autoStart} onCheckedChange={() => setAutoStart(!autoStart)} />
+                {/* 自動開始の設定 */}
+                <div className="flex w-full items-center justify-between gap-2">
+                  <label className="text-sm font-medium text-white/90">自動開始</label>
+                  <Switch checked={autoStart} onCheckedChange={() => setAutoStart(!autoStart)} />
+                </div>
+              </CardFooter>
+              <MetadataUpdater minutes={timeLeft.minutes} seconds={timeLeft.seconds} mode={mode} />
+            </Card>
           </div>
-        </CardFooter>
-        <MetadataUpdater minutes={timeLeft.minutes} seconds={timeLeft.seconds} mode={mode} />
-      </Card>
+        </div>
+      </div>
       <RefreshSuggestion
         suggestion={refreshSuggestion}
         onClose={() => setRefreshSuggestion(null)}
