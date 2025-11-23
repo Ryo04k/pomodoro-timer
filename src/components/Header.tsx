@@ -2,9 +2,19 @@
 import { Volume2 } from "lucide-react";
 import VolumeDialog from "@/components/VolumeDialog";
 import { useState } from "react";
+import Link from "next/link";
+import { authClient } from "@/lib/auth-client";
 
 export default function Header() {
   const [open, setOpen] = useState(false);
+
+  //ログインしているユーザーの情報を取得
+  const { data: session } = authClient.useSession();
+
+  const handleLogout = async () => {
+    await authClient.signOut();
+    window.location.reload();
+  };
 
   return (
     <header className="flex w-full items-center justify-between border-white/15 bg-black/25 px-10 py-4 text-white shadow-lg backdrop-blur">
@@ -18,6 +28,18 @@ export default function Header() {
         >
           <Volume2 className="h-5 w-5" />
         </button>
+
+        {session?.user ? (
+          <div className="flex items-center gap-3">
+            <p>{session.user.name}</p>
+            <button onClick={handleLogout}>ログアウト</button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-3">
+            <Link href="/login">ログイン</Link>
+            <Link href="/signup">新規登録</Link>
+          </div>
+        )}
 
         <VolumeDialog open={open} onOpenChange={setOpen} />
       </div>
