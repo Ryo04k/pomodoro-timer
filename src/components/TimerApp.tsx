@@ -6,7 +6,7 @@ import Controls from "./Controls";
 import MetadataUpdater from "./MetadataUpdater";
 import RefreshSuggestion from "./RefreshSuggestion";
 import Header from "@/components/Header";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { playNotificationSound } from "@/utils/sound";
 import { generateRefreshSuggestion } from "@/utils/gemini";
 import { useAudio } from "@/hooks/useAudio";
@@ -40,28 +40,26 @@ export default function TimerApp() {
   const [refreshSuggestion, setRefreshSuggestion] = useState<string | null>(null);
 
   // モードを切り替える関数
-  const toggleMode = () => {
-    // 現在のモードを反対のモードに切り替える
-    const newMode = mode === "work" ? "break" : "work";
-    setMode(newMode);
+  const toggleMode = useCallback(() => {
+    let nextMode: Mode = "work";
+    setMode((prevMode) => {
+      nextMode = prevMode === "work" ? "break" : "work";
+      return nextMode;
+    });
 
-    // モードに応じてタイマーの時間をリセット
-    // 作業モードなら25分、休憩モードなら5分
     setTimeLeft({
-      minutes: newMode === "work" ? workDuration : breakDuration,
+      minutes: nextMode === "work" ? workDuration : breakDuration,
       seconds: 0,
     });
 
-    // 休憩モードの場合は、Gemini APIを呼び出してリフレッシュ提案を取得
-    if (newMode === "break") {
+    if (nextMode === "break") {
       generateRefreshSuggestion()
         .then((suggestion) => setRefreshSuggestion(suggestion))
         .catch(console.error);
     }
 
-    // 自動開始がONの場合は次のセッションを自動的に開始
     setIsRunning(autoStart);
-  };
+  }, [autoStart, breakDuration, workDuration]);
 
   //開始/停止ボタンのハンドラ
   const handleStart = () => {
@@ -131,7 +129,7 @@ export default function TimerApp() {
         clearInterval(intervalId);
       }
     };
-  }, [isRunning]); // isRunningが変わったときだけこのエフェクトを再実行
+  }, [isRunning, stop, toggleMode]); // isRunningが変わったときだけこのエフェクトを再実行
 
   return (
     <div className="relative min-h-screen w-full overflow-y-auto bg-[rgb(4,6,18)] text-white">
