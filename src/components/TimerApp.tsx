@@ -41,11 +41,8 @@ export default function TimerApp() {
 
   // モードを切り替える関数
   const toggleMode = useCallback(() => {
-    let nextMode: Mode = "work";
-    setMode((prevMode) => {
-      nextMode = prevMode === "work" ? "break" : "work";
-      return nextMode;
-    });
+    const nextMode: Mode = mode === "work" ? "break" : "work";
+    setMode(nextMode);
 
     setTimeLeft({
       minutes: nextMode === "work" ? workDuration : breakDuration,
@@ -59,7 +56,7 @@ export default function TimerApp() {
     }
 
     setIsRunning(autoStart);
-  }, [autoStart, breakDuration, workDuration]);
+  }, [autoStart, breakDuration, mode, workDuration]);
 
   //開始/停止ボタンのハンドラ
   const handleStart = () => {
