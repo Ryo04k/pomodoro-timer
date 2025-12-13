@@ -2,7 +2,15 @@ import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { PrismaClient } from "@/generated/prisma";
 
-const prisma = new PrismaClient();
+const databaseUrl = process.env.DATABASE_URL;
+
+if (!databaseUrl) {
+  throw new Error("DATABASE_URL env var is required to initialize PrismaClient.");
+}
+
+const prisma = new PrismaClient({
+  datasourceUrl: databaseUrl,
+});
 
 export const auth = betterAuth({
   database: prismaAdapter(prisma, {

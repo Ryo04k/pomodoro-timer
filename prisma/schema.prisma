@@ -11,7 +11,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
 
@@ -19,8 +19,8 @@ model User {
   id            String     @id @default(cuid())
   email         String     @unique
   name          String
-  image         String?
   emailVerified Boolean    @default(false)
+  image         String?
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
   sessions      Session[]
@@ -57,4 +57,13 @@ model Account {
 
   @@unique([accountId, providerId])
   @@index([userId])
+}
+
+model Verification {
+  id         String   @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }

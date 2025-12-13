@@ -58,7 +58,7 @@ export default function SignUpForm() {
       // Better Auth の仕様に合わせて：
       // - ここでログイン画面へ飛ばす
       // - もしくはトップページへ
-      router.push("signup"); // 例: ログインページへ
+      router.push("/login");
     });
   };
 

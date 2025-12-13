@@ -3,6 +3,7 @@ import { ErrorCode } from "@/types";
 export const getErrorMessage = (errorCode: ErrorCode | string): string => {
   const messages: Record<ErrorCode, string> = {
     INVALID_INPUT: "入力内容に誤りがあります",
+    INVALID_CREDENTIALS: "メールアドレスまたはパスワードが正しくありません",
     SERVER_ERROR: "処理中にエラーが発生しました。",
     UNAUTHORIZED: "ログインが必要です",
     USER_EXISTS:

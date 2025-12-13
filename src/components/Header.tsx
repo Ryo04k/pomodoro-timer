@@ -10,6 +10,7 @@ export default function Header() {
 
   //ログインしているユーザーの情報を取得
   const { data: session } = authClient.useSession();
+  console.log(session);
 
   const handleLogout = async () => {
     await authClient.signOut();
@@ -17,7 +18,7 @@ export default function Header() {
   };
 
   return (
-    <header className="flex w-full items-center justify-between border-white/15 bg-black/25 px-10 py-4 text-white shadow-lg backdrop-blur">
+    <header className="flex w-full items-center justify-between border-white/15  px-10 py-4 text-white">
       <h1 className="text-lg font-semibold tracking-wide text-white/95">Pomodoro Timer</h1>
 
       <div className="flex items-center gap-2">
