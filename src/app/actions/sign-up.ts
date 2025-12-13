@@ -10,8 +10,11 @@ type SignUpValues = {
   password: string;
 };
 
+type AuthError = {
+  code?: string;
+};
+
 export async function signUp(values: SignUpValues): Promise<ActionResult> {
-  // Zodでバリデーションを検証
   const parsed = signUpSchema.omit({ confirmPassword: true }).safeParse(values);
 
   if (!parsed.success) {
@@ -21,27 +24,20 @@ export async function signUp(values: SignUpValues): Promise<ActionResult> {
   try {
     const { name, email, password } = parsed.data;
 
-    // Better Auth にサインアップを依頼
-    const { error } = await auth.api.signUpEmail({
-      body: {
-        name,
-        email,
-        password,
-      },
+    await auth.api.signUpEmail({
+      body: { name, email, password },
     });
-
-    // Better Auth側のエラーをアプリのErrorCodesにマッピング
-    if (error) {
-      if (error.code === "EMAIL_ALREADY_IN_USE") {
-        return { isSuccess: false, errorCode: ErrorCodes.USER_EXISTS };
-      }
-
-      return { isSuccess: false, errorCode: ErrorCodes.SERVER_ERROR };
-    }
 
     return { isSuccess: true };
   } catch (err) {
     console.error("SignUp error:", err);
+
+    const code = (err as AuthError).code;
+
+    if (code === "EMAIL_ALREADY_IN_USE") {
+      return { isSuccess: false, errorCode: ErrorCodes.USER_EXISTS };
+    }
+
     return { isSuccess: false, errorCode: ErrorCodes.SERVER_ERROR };
   }
 }
