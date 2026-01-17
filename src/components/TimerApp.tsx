@@ -14,6 +14,44 @@ import { useAudio } from "@/hooks/useAudio";
 // タイマーのモードを表す型
 type Mode = "work" | "break";
 
+// 本日のポモドーロ時間を保存する型
+type TodayPomodoro = {
+  date: string;
+  minutes: number;
+};
+
+const TODAY_POMODORO_KEY = "pomodoro_today";
+
+function getTodayKey(): string {
+  return new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Tokyo" });
+}
+
+function loadTodayPomodoro(): TodayPomodoro {
+  const today = getTodayKey();
+  const raw = localStorage.getItem(TODAY_POMODORO_KEY);
+
+  if (!raw) return { date: today, minutes: 0 };
+
+  const parsed = JSON.parse(raw);
+  if (parsed.date !== today) return { date: today, minutes: 0 };
+
+  return { date: today, minutes: parsed.minutes ?? 0 };
+}
+
+function saveTodayPomodoro(date: TodayPomodoro) {
+  localStorage.setItem(TODAY_POMODORO_KEY, JSON.stringify(date));
+}
+
+function formatMinutesText(totalMinutes: number): string {
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+
+  if (hours === 0) return `${minutes}分`;
+  if (minutes === 0) return `${hours}時間`;
+
+  return `${hours}時間${minutes}分`;
+}
+
 export default function TimerApp() {
   // タイマーの実行状態を管理するstate
   const [isRunning, setIsRunning] = useState(false);
@@ -39,6 +77,22 @@ export default function TimerApp() {
   //休憩に入る時のリフレッシュ提案テキスト
   const [refreshSuggestion, setRefreshSuggestion] = useState<string | null>(null);
 
+  // 本日のポモドーロ時間を管理する状態変数
+  const [todayMinutes, setTodayMinutes] = useState(0);
+
+  useEffect(() => {
+    const data = loadTodayPomodoro();
+    setTodayMinutes(data.minutes);
+  }, []);
+
+  const addTodayMinutes = useCallback((minutesToAdd: number) => {
+    const data = loadTodayPomodoro();
+    const next = { date: data.date, minutes: data.minutes + minutesToAdd };
+
+    saveTodayPomodoro(next);
+    setTodayMinutes(next.minutes);
+  }, []);
+
   // モードを切り替える関数
   const toggleMode = useCallback(() => {
     const nextMode: Mode = mode === "work" ? "break" : "work";
@@ -58,8 +112,11 @@ export default function TimerApp() {
     setIsRunning(autoStart);
   }, [autoStart, breakDuration, mode, workDuration]);
 
+  const didFinishRef = useRef(false);
+
   //開始/停止ボタンのハンドラ
   const handleStart = () => {
+    didFinishRef.current = false;
     setIsRunning((prev) => !prev);
   };
 
@@ -83,6 +140,7 @@ export default function TimerApp() {
 
   // リセットボタンのハンドラ
   const handleReset = () => {
+    didFinishRef.current = false;
     setIsRunning(false);
     stop();
     setTimeLeft({ minutes: mode === "work" ? workDuration : breakDuration, seconds: 0 });
@@ -103,8 +161,14 @@ export default function TimerApp() {
           if (prev.seconds === 0) {
             //分数が0の場合（タイマー終了）
             if (prev.minutes === 0) {
+              if (didFinishRef.current) return prev;
+              didFinishRef.current = true;
               setIsRunning(false); // タイマーを停止
               stop(); // 雨音を停止
+
+              if (mode === "work") {
+                addTodayMinutes(workDuration);
+              }
               void playNotificationSound(); // タイマー終了後に音声を再生
               setTimeout(() => {
                 toggleMode(); // モードを自動切り替え
@@ -118,7 +182,7 @@ export default function TimerApp() {
           //秒数が1以上の場合は、秒を1減らす
           return { ...prev, seconds: prev.seconds - 1 };
         });
-      }, 1000);
+      }, 10);
     }
     // クリーンアップ関数（コンポーネントのアンマウント時やisRunningが変わる前に実行される）
     return () => {
@@ -139,10 +203,10 @@ export default function TimerApp() {
           className="pointer-events-none absolute right-8 top-12 lg:right-14 lg:top-14"
         />
 
-        <div className="mt-6 flex flex-col gap-6 lg:flex-row lg:gap-10">
+        <div className="mt-6 flex flex-col gap-6 lg:flex-row lg:gap-10 rounded-xl">
           {/* 左：動画エリア */}
-          <div className="relative w-full rounded-[36px] border border-white/10 bg-white/5 shadow-[0_25px_80px_rgba(0,0,0,0.65)] backdrop-blur-2xl lg:w-3/5 lg:self-start">
-            <div className="relative h-[260px] w-full overflow-hidden rounded-[36px] sm:h-[360px] lg:h-[520px]">
+          <div className="relative w-full border border-white/10 bg-white/5 shadow-[0_25px_80px_rgba(0,0,0,0.65)] backdrop-blur-2xl lg:w-3/5 lg:self-start rounded-xl">
+            <div className="relative h-[260px] w-full overflow-hidden sm:h-[360px] lg:h-[520px] rounded-xl">
               <video
                 ref={videoRef}
                 src="/top_movie02.mp4"
@@ -157,16 +221,17 @@ export default function TimerApp() {
 
           {/* 右：タイマー */}
           <div className="w-full lg:w-2/5">
-            <Card className="relative flex flex-col overflow-hidden rounded-[32px] border border-white/10 bg-black/70 text-white shadow-[0_30px_120px_rgba(0,0,0,0.75)] backdrop-blur-2xl">
+            <Card className="relative flex flex-col overflow-hidden border border-white/10 bg-black/70 text-white shadow-[0_30px_120px_rgba(0,0,0,0.75)] backdrop-blur-2xl mb-6">
               <CardHeader className="relative z-10 text-center">
-                <CardTitle className="text-2xl font-semibold tracking-wide text-white">
+                <h3 className="text-sm tracking-wide text-white">本日のポモドーロ時間</h3>
+                <p className="text-xl font-semibold"> {formatMinutesText(todayMinutes)}</p>
+              </CardHeader>
+            </Card>
+            <Card className="relative flex flex-col overflow-hidden border border-white/10 bg-black/70 text-white shadow-[0_30px_120px_rgba(0,0,0,0.75)] backdrop-blur-2xl">
+              <CardHeader className="relative z-10 text-center">
+                <CardTitle className="text-xl font-semibold tracking-wide text-white">
                   {mode === "work" ? "作業時間" : "休憩時間"}
                 </CardTitle>
-                <p className="text-sm text-white/70">
-                  {mode === "work"
-                    ? "集中モードでタスクに没頭しましょう。"
-                    : "短い休憩で次のフォーカスに備えましょう。"}
-                </p>
               </CardHeader>
               <CardContent className="relative z-10 flex flex-col items-center gap-6">
                 <TimerDisplay minutes={timeLeft.minutes} seconds={timeLeft.seconds} mode={mode} />
