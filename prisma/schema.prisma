@@ -9,50 +9,59 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider  = "postgresql"
   url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
 
+enum RankingPeriod {
+  WEEKLY
+  MONTHLY
+  ALL_TIME
+}
+
 model User {
-  id            String     @id @default(cuid())
-  email         String     @unique
+  id            String    @id @default(cuid())
+  email         String    @unique
   name          String
-  emailVerified Boolean    @default(false)
+  emailVerified Boolean   @default(false)
   image         String?
-  createdAt     DateTime   @default(now())
-  updatedAt     DateTime   @updatedAt
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
   sessions      Session[]
   accounts      Account[]
+
+  pomodoroSessions  PomodoroSession[]
+  rankingAggregates UserRankingAggregate[]
 }
 
 model Session {
-  id         String   @id @default(cuid())
-  expiresAt  DateTime
-  token      String   @unique
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  ipAddress  String?
-  userAgent  String?
-  userId     String
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id        String   @id @default(cuid())
+  expiresAt DateTime
+  token     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Account {
-  id                     String   @id @default(cuid())
-  accountId              String
-  providerId             String
-  userId                 String
-  accessToken            String?
-  refreshToken           String?
-  idToken                String?
-  accessTokenExpiresAt   DateTime?
-  refreshTokenExpiresAt  DateTime?
-  scope                  String?
-  password               String?
-  createdAt              DateTime @default(now())
-  updatedAt              DateTime @updatedAt
-  user                   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                    String    @id @default(cuid())
+  accountId             String
+  providerId            String
+  userId                String
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([accountId, providerId])
   @@index([userId])
@@ -65,4 +74,30 @@ model Verification {
   expiresAt  DateTime
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+}
+
+model PomodoroSession {
+  id             String   @id @default(cuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  idempotencyKey String   @unique
+  startedAt      DateTime
+  endedAt        DateTime
+  durationMin    Int
+  createdAt      DateTime @default(now())
+
+  @@index([userId, startedAt])
+}
+
+model UserRankingAggregate {
+  id          String        @id @default(cuid())
+  userId      String
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  period      RankingPeriod
+  periodStart DateTime
+  totalMin    Int           @default(0)
+  updatedAt   DateTime      @updatedAt
+
+  @@unique([userId, period, periodStart])
+  @@index([period, periodStart, totalMin])
 }
