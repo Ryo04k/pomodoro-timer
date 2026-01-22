@@ -182,7 +182,7 @@ export default function TimerApp() {
           //秒数が1以上の場合は、秒を1減らす
           return { ...prev, seconds: prev.seconds - 1 };
         });
-      }, 10);
+      }, 1000);
     }
     // クリーンアップ関数（コンポーネントのアンマウント時やisRunningが変わる前に実行される）
     return () => {
