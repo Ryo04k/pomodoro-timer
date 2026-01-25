@@ -7,6 +7,7 @@ import MetadataUpdater from "./MetadataUpdater";
 import RefreshSuggestion from "./RefreshSuggestion";
 import Header from "@/components/Header";
 import { useState, useEffect, useRef, useCallback } from "react";
+import { ChevronDown } from "lucide-react";
 import { playNotificationSound } from "@/utils/sound";
 import { generateRefreshSuggestion } from "@/utils/gemini";
 import { useAudio } from "@/hooks/useAudio";
@@ -205,7 +206,7 @@ export default function TimerApp() {
 
         <div className="mt-6 flex flex-col gap-6 lg:flex-row lg:gap-10 rounded-xl">
           {/* 左：動画エリア */}
-          <div className="relative w-full border border-white/10 bg-white/5 shadow-[0_25px_80px_rgba(0,0,0,0.65)] backdrop-blur-2xl lg:w-3/5 lg:self-start rounded-xl">
+          <div className="relative w-full border border-white/10 bg-white/5 lg:w-3/5 lg:self-start rounded-xl">
             <div className="relative h-[260px] w-full overflow-hidden sm:h-[360px] lg:h-[520px] rounded-xl">
               <video
                 ref={videoRef}
@@ -221,20 +222,28 @@ export default function TimerApp() {
 
           {/* 右：タイマー */}
           <div className="w-full lg:w-2/5">
-            <Card className="relative flex flex-col overflow-hidden border border-white/10 bg-black/70 text-white shadow-[0_30px_120px_rgba(0,0,0,0.75)] backdrop-blur-2xl mb-6">
+            <Card className="relative flex flex-col overflow-hidden border-0 bg-gray-700/30 text-white mb-6">
               <CardHeader className="relative z-10 text-center">
-                <h3 className="text-sm tracking-wide text-white">本日のポモドーロ時間</h3>
+                <h3 className="text-sm tracking-wide text-white font-semibold">
+                  本日のポモドーロ時間
+                </h3>
                 <p className="text-xl font-semibold"> {formatMinutesText(todayMinutes)}</p>
               </CardHeader>
             </Card>
-            <Card className="relative flex flex-col overflow-hidden border border-white/10 bg-black/70 text-white shadow-[0_30px_120px_rgba(0,0,0,0.75)] backdrop-blur-2xl">
+
+            <Card className="relative flex flex-col overflow-hidden border-0 bg-gray-700/30 text-white">
               <CardHeader className="relative z-10 text-center">
                 <CardTitle className="text-xl font-semibold tracking-wide text-white">
                   {mode === "work" ? "作業時間" : "休憩時間"}
                 </CardTitle>
               </CardHeader>
-              <CardContent className="relative z-10 flex flex-col items-center gap-6">
-                <TimerDisplay minutes={timeLeft.minutes} seconds={timeLeft.seconds} mode={mode} />
+              <CardContent className="relative z-10 -mt-2 flex flex-col items-center gap-6">
+                <TimerDisplay
+                  minutes={timeLeft.minutes}
+                  seconds={timeLeft.seconds}
+                  mode={mode}
+                  isRunning={isRunning}
+                />
                 <Controls
                   onStart={handleStart}
                   onReset={handleReset}
@@ -242,59 +251,75 @@ export default function TimerApp() {
                   isRunning={isRunning}
                 />
               </CardContent>
-              <CardFooter className="relative z-10 mx-auto flex w-full max-w-[260px] flex-col gap-4 text-white">
+              <CardFooter className="relative z-10 mx-auto flex w-full max-w-[260px] flex-col gap-3 text-white">
                 {/* 作業時間の設定 */}
-                <div className="flex items-center gap-3">
+                <div className="flex items-center justify-between gap-3">
                   <label className="min-w-[4.5rem] text-sm font-medium text-white/90">
                     作業時間
                   </label>
-                  <select
-                    value={workDuration}
-                    onChange={(e) => {
-                      const newDuration = parseInt(e.target.value);
-                      setWorkDuration(newDuration);
-                      if (mode === "work" && !isRunning) {
-                        setTimeLeft({ minutes: newDuration, seconds: 0 });
-                      }
-                    }}
-                    className="w-full rounded-lg border border-white/20 bg-white/10 p-2 text-white focus:outline-none focus:ring-2 focus:ring-white/40"
-                  >
-                    {[5, 10, 15, 25, 30, 45, 60].map((minutes) => (
-                      <option key={minutes} value={minutes}>
-                        {minutes}分
-                      </option>
-                    ))}
-                  </select>
+                  <div className="relative flex h-9 w-full min-w-[140px] items-center">
+                    <select
+                      value={workDuration}
+                      onChange={(e) => {
+                        const newDuration = parseInt(e.target.value);
+                        setWorkDuration(newDuration);
+                        if (mode === "work" && !isRunning) {
+                          setTimeLeft({ minutes: newDuration, seconds: 0 });
+                        }
+                      }}
+                      className="h-9 w-full appearance-none rounded-lg border border-white/20 bg-white/10 px-2.5 pr-8 text-center text-sm text-white focus:outline-none focus:ring-2 focus:ring-white/40"
+                    >
+                      {[5, 10, 15, 25, 30, 45, 60].map((minutes) => (
+                        <option key={minutes} value={minutes}>
+                          {minutes}分
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown
+                      className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/60"
+                      aria-hidden
+                    />
+                  </div>
                 </div>
 
                 {/* 休憩時間の設定 */}
-                <div className="flex items-center gap-3">
+                <div className="flex items-center justify-between gap-3">
                   <label className="min-w-[4.5rem] text-sm font-medium text-white/90">
                     休憩時間
                   </label>
-                  <select
-                    value={breakDuration}
-                    onChange={(e) => {
-                      const newDuration = parseInt(e.target.value);
-                      setBreakDuration(newDuration);
-                      if (mode === "break" && !isRunning) {
-                        setTimeLeft({ minutes: newDuration, seconds: 0 });
-                      }
-                    }}
-                    className="w-full rounded-lg border border-white/20 bg-white/10 p-2 text-white focus:outline-none focus:ring-2 focus:ring-white/40"
-                  >
-                    {[5, 10, 15].map((minutes) => (
-                      <option key={minutes} value={minutes}>
-                        {minutes}分
-                      </option>
-                    ))}
-                  </select>
+                  <div className="relative flex h-9 w-full min-w-[140px] items-center">
+                    <select
+                      value={breakDuration}
+                      onChange={(e) => {
+                        const newDuration = parseInt(e.target.value);
+                        setBreakDuration(newDuration);
+                        if (mode === "break" && !isRunning) {
+                          setTimeLeft({ minutes: newDuration, seconds: 0 });
+                        }
+                      }}
+                      className="h-9 w-full appearance-none rounded-lg border border-white/20 bg-white/10 px-2.5 pr-8 text-center text-sm text-white focus:outline-none focus:ring-2 focus:ring-white/40"
+                    >
+                      {[5, 10, 15].map((minutes) => (
+                        <option key={minutes} value={minutes}>
+                          {minutes}分
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown
+                      className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/60"
+                      aria-hidden
+                    />
+                  </div>
                 </div>
 
                 {/* 自動開始の設定 */}
-                <div className="flex w-full items-center justify-between gap-2">
-                  <label className="text-sm font-medium text-white/90">自動開始</label>
-                  <Switch checked={autoStart} onCheckedChange={() => setAutoStart(!autoStart)} />
+                <div className="flex items-center justify-between gap-3">
+                  <label className="min-w-[4.5rem] text-sm font-medium text-white/90">
+                    自動開始
+                  </label>
+                  <div className="flex h-9 w-full min-w-[140px] items-center justify-center">
+                    <Switch checked={autoStart} onCheckedChange={() => setAutoStart(!autoStart)} />
+                  </div>
                 </div>
               </CardFooter>
               <MetadataUpdater minutes={timeLeft.minutes} seconds={timeLeft.seconds} mode={mode} />
