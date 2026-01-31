@@ -24,7 +24,7 @@ export default function Header() {
       <div className="flex items-center gap-2">
         <button
           onClick={() => setOpen(true)}
-          className="rounded-full p-2 text-white transition-colors duration-200 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+          className="rounded-full p-2 text-white transition-colors duration-200 bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 hover:bg-white/20"
           aria-label="音量を調整"
         >
           <Volume2 className="h-5 w-5" />
@@ -38,7 +38,6 @@ export default function Header() {
         ) : (
           <div className="flex items-center gap-3">
             <Link href="/login">ログイン</Link>
-            <Link href="/signup">新規登録</Link>
           </div>
         )}
 

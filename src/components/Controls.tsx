@@ -16,7 +16,7 @@ export default function Controls({ onStart, onReset, onModeToggle, isRunning }: 
         size="lg"
         onClick={onStart}
         className={`w-full transition-all duration-200 cursor-pointer ${
-          isRunning ? "bg-orange-500 hover:bg-orange-600" : "bg-green-700 hover:bg-green-800"
+          isRunning ? "bg-orange-500 hover:bg-orange-600" : "bg-blue-900 hover:bg-blue-800"
         }`}
       >
         <span className="flex items-center gap-2 font-bold">
@@ -24,12 +24,12 @@ export default function Controls({ onStart, onReset, onModeToggle, isRunning }: 
           {isRunning ? "停止" : "開始"}
         </span>
       </Button>
-      <div className="flex w-full gap-3">
+      <div className="flex w-full gap-3 ">
         <Button
           variant="secondary"
           size="lg"
           onClick={onReset}
-          className="flex-1 group bg-gray-100 hover:bg-gray-200 cursor-pointer"
+          className="flex-1 group bg-blue-900/50 hover:bg-blue-800 cursor-pointer text-white"
         >
           <span className="flex items-center gap-2">
             <RotateCcw className="w-4 h-4 group-hover:rotate-180 transition-transform duration-200" />
@@ -40,7 +40,7 @@ export default function Controls({ onStart, onReset, onModeToggle, isRunning }: 
           variant="secondary"
           size="lg"
           onClick={onModeToggle}
-          className="flex-1 group bg-gray-100 hover:bg-gray-200 cursor-pointer"
+          className="flex-1 group bg-blue-900/50 hover:bg-blue-800 cursor-pointer text-white"
         >
           <span className="flex items-center gap-2">
             <Timer className="w-4 h-4 group-hover:scale-110 transition-transform duration-200" />

@@ -28,11 +28,11 @@ export default function VolumeDialog({ open, onOpenChange }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-sm">
+      <DialogContent className="sm:max-w-sm bg-[#040612]/50 border-white/10 backdrop-blur [&_[data-slot=dialog-close]]:text-white/80 [&_[data-slot=dialog-close]]:hover:text-white py-10">
         <DialogHeader>
-          <DialogTitle>雨音の調整</DialogTitle>
+          <DialogTitle className="text-lg font-semibold text-accent-blue">雨音の音量</DialogTitle>
         </DialogHeader>
-        <div className="py-4">
+        <div>
           <Slider
             value={[Math.round(volume * 100)]}
             min={0}
