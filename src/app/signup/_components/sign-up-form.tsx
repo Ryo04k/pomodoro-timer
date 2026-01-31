@@ -64,16 +64,20 @@ export default function SignUpForm() {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
         {/* ニックネーム */}
         <FormField
           control={form.control}
           name="name"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>ユーザー名</FormLabel>
+              <FormLabel className="text-sm text-white/80">ユーザー名</FormLabel>
               <FormControl>
-                <Input placeholder="たろう" {...field} />
+                <Input
+                  placeholder="ユーザー名"
+                  className="border-white/15 bg-white/5 text-white placeholder:text-white/40 focus-visible:ring-white/30"
+                  {...field}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -86,9 +90,14 @@ export default function SignUpForm() {
           name="email"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>メールアドレス</FormLabel>
+              <FormLabel className="text-sm text-white/80">メールアドレス</FormLabel>
               <FormControl>
-                <Input type="email" placeholder="your@email.com" {...field} />
+                <Input
+                  type="email"
+                  placeholder="email@example.com"
+                  className="border-white/15 bg-white/5 text-white placeholder:text-white/40 focus-visible:ring-white/30"
+                  {...field}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -101,9 +110,14 @@ export default function SignUpForm() {
           name="password"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>パスワード</FormLabel>
+              <FormLabel className="text-sm text-white/80">パスワード</FormLabel>
               <FormControl>
-                <Input type="password" placeholder="8文字以上のパスワード" {...field} />
+                <Input
+                  type="password"
+                  placeholder="8文字以上のパスワード"
+                  className="border-white/15 bg-white/5 text-white placeholder:text-white/40 focus-visible:ring-white/30"
+                  {...field}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -116,9 +130,14 @@ export default function SignUpForm() {
           name="confirmPassword"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>パスワード（確認用）</FormLabel>
+              <FormLabel className="text-sm text-white/80">パスワード（確認用）</FormLabel>
               <FormControl>
-                <Input type="password" placeholder="8文字以上のパスワード" {...field} />
+                <Input
+                  type="password"
+                  placeholder="8文字以上のパスワード"
+                  className="border-white/15 bg-white/5 text-white placeholder:text-white/40 focus-visible:ring-white/30"
+                  {...field}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -126,7 +145,11 @@ export default function SignUpForm() {
         />
 
         {/* 送信ボタン */}
-        <Button type="submit" disabled={isPending} className="w-full">
+        <Button
+          type="submit"
+          disabled={isPending}
+          className="w-full bg-blue-800 text-white hover:bg-blue-800"
+        >
           {isPending ? "登録中…" : "新規登録"}
         </Button>
       </form>

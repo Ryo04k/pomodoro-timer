@@ -66,15 +66,20 @@ export default function LoginForm() {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
         <FormField
           control={form.control}
           name="email"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>メールアドレス</FormLabel>
+              <FormLabel className="text-sm text-white/80">メールアドレス</FormLabel>
               <FormControl>
-                <Input type="email" placeholder="your@email.com" {...field} />
+                <Input
+                  type="email"
+                  placeholder="email@example.com"
+                  className="border-white/15 bg-white/5 text-white placeholder:text-white/40 focus-visible:ring-white/30"
+                  {...field}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -86,22 +91,34 @@ export default function LoginForm() {
           name="password"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>パスワード</FormLabel>
+              <FormLabel className="text-sm text-white/80">パスワード</FormLabel>
               <FormControl>
-                <Input type="password" placeholder="8文字以上のパスワード" {...field} />
+                <Input
+                  type="password"
+                  placeholder="8文字以上のパスワード"
+                  className="border-white/15 bg-white/5 text-white placeholder:text-white/40 focus-visible:ring-white/30"
+                  {...field}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
 
-        <Button type="submit" disabled={isPending} className="w-full">
+        <Button
+          type="submit"
+          disabled={isPending}
+          className="cursor-pointer w-full bg-blue-800 text-white hover:bg-blue-800"
+        >
           {isPending ? "ログイン中…" : "ログイン"}
         </Button>
 
-        <p className="text-sm text-muted-foreground">
-          アカウントをお持ちでない方は{" "}
-          <Link href="/signup" className="text-primary underline underline-offset-4">
+        <p className="text-sm text-white/60">
+          アカウントをお持ちでない方は&nbsp;
+          <Link
+            href="/signup"
+            className="font-medium text-white underline underline-offset-4 decoration-white/60 hover:text-white"
+          >
             新規登録
           </Link>
           へ
