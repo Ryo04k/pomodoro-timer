@@ -38,7 +38,6 @@ export default function Header() {
         ) : (
           <div className="flex items-center gap-3">
             <Link href="/login">ログイン</Link>
-            <Link href="/signup">新規登録</Link>
           </div>
         )}
 
