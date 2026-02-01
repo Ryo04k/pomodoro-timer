@@ -267,7 +267,7 @@ export default function TimerApp() {
                           setTimeLeft({ minutes: newDuration, seconds: 0 });
                         }
                       }}
-                      className="h-9 w-full appearance-none rounded-lg border border-white/20 bg-white/10 px-2.5 pr-8 text-center text-sm text-white focus:outline-none focus:ring-2 focus:ring-white/40"
+                      className="h-9 w-full appearance-none rounded-lg border border-white/20 bg-white/10 px-2.5 pr-8 text-center text-sm text-white focus:outline-none focus:ring-2 focus:ring-white/40 font-bold"
                     >
                       {[5, 10, 15, 25, 30, 45, 60].map((minutes) => (
                         <option key={minutes} value={minutes}>
@@ -297,7 +297,7 @@ export default function TimerApp() {
                           setTimeLeft({ minutes: newDuration, seconds: 0 });
                         }
                       }}
-                      className="h-9 w-full appearance-none rounded-lg border border-white/20 bg-white/10 px-2.5 pr-8 text-center text-sm text-white focus:outline-none focus:ring-2 focus:ring-white/40"
+                      className="h-9 w-full appearance-none rounded-lg border border-white/20 bg-white/10 px-2.5 pr-8 text-center text-sm text-white focus:outline-none focus:ring-2 focus:ring-white/40 font-bold"
                     >
                       {[5, 10, 15].map((minutes) => (
                         <option key={minutes} value={minutes}>

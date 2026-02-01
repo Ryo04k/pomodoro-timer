@@ -33,7 +33,7 @@ export default function Header() {
         <h1 className="text-2xl font-bold leading-none tracking-wide text-accent-blue">
           RainTimer
         </h1>
-        <p className="text-sm leading-none text-white/60">雨音と黒猫と過ごすポモドーロタイマー</p>
+        <p className="text-sm leading-none text-white/60">雨音・黒猫と過ごすポモドーロタイマー</p>
       </div>
 
       <div className="flex items-center gap-4">
