@@ -8,7 +8,6 @@ interface RefreshSuggestionProps {
 }
 
 export default function RefreshSuggestion({ suggestion, onClose }: RefreshSuggestionProps) {
-  // 5秒後に自動で閉じる
   useEffect(() => {
     if (suggestion) {
       const timer = setTimeout(() => {
@@ -25,7 +24,7 @@ export default function RefreshSuggestion({ suggestion, onClose }: RefreshSugges
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 20 }}
-          className="fixed top-6 left-6 w-full max-w-md rounded-lg border border-indigo-200 bg-indigo-50/90 p-6 shadow-lg backdrop-blur-md"
+          className="fixed top-6 left-1/2 w-full max-w-md -translate-x-1/2 rounded-lg border border-indigo-200 bg-indigo-50/90 p-6 shadow-lg backdrop-blur-md"
         >
           <button
             onClick={onClose}

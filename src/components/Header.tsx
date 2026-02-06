@@ -19,7 +19,6 @@ export default function Header() {
 
   //ログインしているユーザーの情報を取得
   const { data: session } = authClient.useSession();
-  console.log(session);
   const userName = session?.user?.name ?? "ユーザー";
 
   const handleLogout = async () => {
@@ -29,11 +28,11 @@ export default function Header() {
 
   return (
     <header className="flex w-full items-center justify-between border-white/15  px-10 py-4 text-white">
-      <div className="flex items-center gap-3">
+      <div className="flex items-end gap-3">
         <h1 className="text-2xl font-bold leading-none tracking-wide text-accent-blue">
           RainTimer
         </h1>
-        <p className="text-sm leading-none text-white/60">雨音と黒猫と過ごすポモドーロタイマー</p>
+        <p className="text-sm leading-none text-white/60">雨音・黒猫と過ごすポモドーロタイマー</p>
       </div>
 
       <div className="flex items-center gap-4">

@@ -12,10 +12,8 @@ import { playNotificationSound } from "@/utils/sound";
 import { generateRefreshSuggestion } from "@/utils/gemini";
 import { useAudio } from "@/hooks/useAudio";
 
-// タイマーのモードを表す型
 type Mode = "work" | "break";
 
-// 本日のポモドーロ時間を保存する型
 type TodayPomodoro = {
   date: string;
   minutes: number;
@@ -96,15 +94,15 @@ export default function TimerApp() {
 
   // モードを切り替える関数
   const toggleMode = useCallback(() => {
-    const nextMode: Mode = mode === "work" ? "break" : "work";
-    setMode(nextMode);
+    const newMode: Mode = mode === "work" ? "break" : "work";
+    setMode(newMode);
 
     setTimeLeft({
-      minutes: nextMode === "work" ? workDuration : breakDuration,
+      minutes: newMode === "work" ? workDuration : breakDuration,
       seconds: 0,
     });
 
-    if (nextMode === "break") {
+    if (newMode === "break") {
       generateRefreshSuggestion()
         .then((suggestion) => setRefreshSuggestion(suggestion))
         .catch(console.error);
@@ -149,49 +147,48 @@ export default function TimerApp() {
 
   // タイマーのカウントダウン処理
   useEffect(() => {
-    //setIntervalの戻り値(タイマーID)を保持する変数
+    //タイマーIDを保持する変数
     let intervalId: NodeJS.Timeout;
 
-    // タイマーが実行中の場合のみ処理を行う
     if (isRunning) {
-      // 1秒ごとに実行される処理を設定しつつ、
-      // 戻り値（タイマーID）を intervalId 変数に再セット
       intervalId = setInterval(() => {
         setTimeLeft((prev) => {
-          //秒数が0の場合
-          if (prev.seconds === 0) {
-            //分数が0の場合（タイマー終了）
-            if (prev.minutes === 0) {
-              if (didFinishRef.current) return prev;
-              didFinishRef.current = true;
-              setIsRunning(false); // タイマーを停止
-              stop(); // 雨音を停止
+          const isFinished = prev.minutes === 0 && prev.seconds === 0;
 
-              if (mode === "work") {
-                addTodayMinutes(workDuration);
-              }
-              void playNotificationSound(); // タイマー終了後に音声を再生
-              setTimeout(() => {
-                toggleMode(); // モードを自動切り替え
-              }, 100);
-              return prev; //現在の状態(0分0秒)を返す
+          if (isFinished) {
+            if (didFinishRef.current) return prev;
+
+            didFinishRef.current = true;
+            setIsRunning(false);
+            stop(); // 雨音を停止
+
+            if (mode === "work") {
+              addTodayMinutes(workDuration);
             }
-            // 分数がまだ残っている場合は、分を1減らして秒を59にセット
+
+            void playNotificationSound(); // タイマー終了後に通知音を再生
+
+            setTimeout(() => {
+              toggleMode();
+            }, 100);
+            return prev;
+          }
+
+          if (prev.seconds === 0) {
             return { minutes: prev.minutes - 1, seconds: 59 };
           }
 
-          //秒数が1以上の場合は、秒を1減らす
           return { ...prev, seconds: prev.seconds - 1 };
         });
       }, 1000);
     }
-    // クリーンアップ関数（コンポーネントのアンマウント時やisRunningが変わる前に実行される）
+
     return () => {
       if (intervalId) {
         clearInterval(intervalId);
       }
     };
-  }, [isRunning, stop, toggleMode]); // isRunningが変わったときだけこのエフェクトを再実行
+  }, [isRunning, stop, toggleMode]);
 
   return (
     <div className="relative min-h-screen w-full overflow-y-auto bg-[rgb(4,6,18)] text-white">
@@ -199,15 +196,11 @@ export default function TimerApp() {
         <div className="-mx-4 sm:-mx-6 lg:-mx-10">
           <Header />
         </div>
-        <span
-          id="confettiReward"
-          className="pointer-events-none absolute right-8 top-12 lg:right-14 lg:top-14"
-        />
 
         <div className="mt-6 flex flex-col gap-6 lg:flex-row lg:gap-10 rounded-xl">
           {/* 左：動画エリア */}
           <div className="relative w-full border border-white/10 bg-white/5 lg:w-3/5 lg:self-start rounded-xl">
-            <div className="relative h-[260px] w-full overflow-hidden sm:h-[360px] lg:h-[520px] rounded-xl">
+            <div className="relative  w-full overflow-hidden sm:h-[360px] lg:h-[520px] rounded-xl">
               <video
                 ref={videoRef}
                 src="/top_movie02.mp4"
@@ -267,7 +260,7 @@ export default function TimerApp() {
                           setTimeLeft({ minutes: newDuration, seconds: 0 });
                         }
                       }}
-                      className="h-9 w-full appearance-none rounded-lg border border-white/20 bg-white/10 px-2.5 pr-8 text-center text-sm text-white focus:outline-none focus:ring-2 focus:ring-white/40"
+                      className="h-9 w-full appearance-none rounded-lg border border-white/20 bg-white/10 px-2.5 pr-8 text-center text-sm text-white focus:outline-none focus:ring-2 focus:ring-white/40 font-bold"
                     >
                       {[5, 10, 15, 25, 30, 45, 60].map((minutes) => (
                         <option key={minutes} value={minutes}>
@@ -297,7 +290,7 @@ export default function TimerApp() {
                           setTimeLeft({ minutes: newDuration, seconds: 0 });
                         }
                       }}
-                      className="h-9 w-full appearance-none rounded-lg border border-white/20 bg-white/10 px-2.5 pr-8 text-center text-sm text-white focus:outline-none focus:ring-2 focus:ring-white/40"
+                      className="h-9 w-full appearance-none rounded-lg border border-white/20 bg-white/10 px-2.5 pr-8 text-center text-sm text-white focus:outline-none focus:ring-2 focus:ring-white/40 font-bold"
                     >
                       {[5, 10, 15].map((minutes) => (
                         <option key={minutes} value={minutes}>
