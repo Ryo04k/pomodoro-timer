@@ -1,16 +1,24 @@
 "use client";
+
+import { useState, useEffect, useRef, useCallback } from "react";
+import { ChevronDown } from "lucide-react";
+
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import TimerDisplay from "./TimerDisplay";
 import { Switch } from "@/components/ui/switch";
+
+import Header from "@/components/Header";
+import TimerDisplay from "./TimerDisplay";
 import Controls from "./Controls";
 import MetadataUpdater from "./MetadataUpdater";
 import RefreshSuggestion from "./RefreshSuggestion";
-import Header from "@/components/Header";
-import { useState, useEffect, useRef, useCallback } from "react";
-import { ChevronDown } from "lucide-react";
+import AllTimeRankingCard from "@/components/RankingCard";
+
 import { playNotificationSound } from "@/utils/sound";
 import { generateRefreshSuggestion } from "@/utils/gemini";
+import { savePomodoroSession } from "@/utils/pomodoro";
+
 import { useAudio } from "@/hooks/useAudio";
+import { authClient } from "@/lib/auth-client";
 
 type Mode = "work" | "break";
 
@@ -37,66 +45,94 @@ function loadTodayPomodoro(): TodayPomodoro {
   return { date: today, minutes: parsed.minutes ?? 0 };
 }
 
-function saveTodayPomodoro(date: TodayPomodoro) {
-  localStorage.setItem(TODAY_POMODORO_KEY, JSON.stringify(date));
+function saveTodayPomodoro(data: TodayPomodoro) {
+  localStorage.setItem(TODAY_POMODORO_KEY, JSON.stringify(data));
 }
 
-function formatMinutesText(totalMinutes: number): string {
+function formatMinutesText(totalMinutes: number) {
   const hours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;
 
-  if (hours === 0) return `${minutes}分`;
-  if (minutes === 0) return `${hours}時間`;
+  if (hours === 0) {
+    return (
+      <span>
+        <span className="text-2xl">{minutes}</span>
+        <span className="ml-0.5 text-xs text-white/65">分</span>
+      </span>
+    );
+  }
 
-  return `${hours}時間${minutes}分`;
+  if (minutes === 0) {
+    return (
+      <span>
+        <span className="text-2xl">{hours}</span>
+        <span className="ml-0.5 text-xs text-white/65">時間</span>
+      </span>
+    );
+  }
+
+  return (
+    <span>
+      <span className="text-2xl">{hours}</span>
+      <span className="ml-0.5 text-xs text-white/65">時間</span>
+      <span className="ml-1 text-2xl">{minutes}</span>
+      <span className="ml-0.5 text-xs text-white/65">分</span>
+    </span>
+  );
 }
 
 export default function TimerApp() {
-  // タイマーの実行状態を管理するstate
-  const [isRunning, setIsRunning] = useState(false);
+  // =========================
+  // 外部フック・セッション
+  // =========================
+  const { data: session } = authClient.useSession();
+  const userId = session?.user?.id ?? null;
 
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-
-  // 雨音の再生を管理するフック
   const { play, stop } = useAudio("/rain_sound.mp3", 0.2);
 
-  // 作業時間・休憩時間を管理する状態変数
+  // =========================
+  // タイマー状態
+  // =========================
+  const [isRunning, setIsRunning] = useState(false);
   const [workDuration, setWorkDuration] = useState(25);
   const [breakDuration, setBreakDuration] = useState(5);
-
-  // タイマーの残り時間を保持する状態変数
-  const [timeLeft, setTimeLeft] = useState({ minutes: workDuration, seconds: 0 });
-
-  // モードの状態を管理する変数
+  const [timeLeft, setTimeLeft] = useState({ minutes: 25, seconds: 0 });
   const [mode, setMode] = useState<Mode>("work");
-
-  //自動開始の設定
   const [autoStart, setAutoStart] = useState(false);
 
-  //休憩に入る時のリフレッシュ提案テキスト
+  // =========================
+  // UI表示用の状態
+  // =========================
   const [refreshSuggestion, setRefreshSuggestion] = useState<string | null>(null);
-
-  // 本日のポモドーロ時間を管理する状態変数
   const [todayMinutes, setTodayMinutes] = useState(0);
+  const [rankingRefreshKey, setRankingRefreshKey] = useState(0);
 
-  useEffect(() => {
-    const data = loadTodayPomodoro();
-    setTodayMinutes(data.minutes);
-  }, []);
+  // =========================
+  // ref（再レンダリング不要な内部状態）
+  // =========================
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const didFinishRef = useRef(false);
+  const workStartedAtRef = useRef<number | null>(null);
+  const isSavingRef = useRef(false);
 
+  // =========================
+  // 補助関数
+  // =========================
   const addTodayMinutes = useCallback((minutesToAdd: number) => {
     const data = loadTodayPomodoro();
-    const next = { date: data.date, minutes: data.minutes + minutesToAdd };
+    const next = {
+      date: data.date,
+      minutes: data.minutes + minutesToAdd,
+    };
 
     saveTodayPomodoro(next);
     setTodayMinutes(next.minutes);
   }, []);
 
-  // モードを切り替える関数
   const toggleMode = useCallback(() => {
     const newMode: Mode = mode === "work" ? "break" : "work";
-    setMode(newMode);
 
+    setMode(newMode);
     setTimeLeft({
       minutes: newMode === "work" ? workDuration : breakDuration,
       seconds: 0,
@@ -111,17 +147,81 @@ export default function TimerApp() {
     setIsRunning(autoStart);
   }, [autoStart, breakDuration, mode, workDuration]);
 
-  const didFinishRef = useRef(false);
-
-  //開始/停止ボタンのハンドラ
+  // =========================
+  // UIイベント
+  // =========================
   const handleStart = () => {
     didFinishRef.current = false;
-    setIsRunning((prev) => !prev);
+
+    setIsRunning((prev) => {
+      const next = !prev;
+
+      if (next && mode === "work" && workStartedAtRef.current === null) {
+        workStartedAtRef.current = Date.now();
+      }
+
+      return next;
+    });
   };
 
-  // 雨音と動画の再生制御
+  const handleReset = () => {
+    didFinishRef.current = false;
+    setIsRunning(false);
+    stop();
+
+    if (mode === "work") {
+      workStartedAtRef.current = null;
+    }
+
+    setTimeLeft({
+      minutes: mode === "work" ? workDuration : breakDuration,
+      seconds: 0,
+    });
+  };
+
+  // =========================
+  // ポモドーロ完了時のセッション保存
+  // =========================
+  const saveCompletedWorkSession = useCallback(async () => {
+    if (!userId) return;
+
+    // 二重保存防止
+    if (isSavingRef.current) return;
+    isSavingRef.current = true;
+
+    try {
+      const endedAtMs = Date.now();
+      const startedAtMs = workStartedAtRef.current ?? endedAtMs - workDuration * 60 * 1000;
+      const idempotencyKey = `${userId}:${startedAtMs}:${workDuration}`;
+
+      await savePomodoroSession({
+        idempotencyKey,
+        startedAt: new Date(startedAtMs).toISOString(),
+        endedAt: new Date(endedAtMs).toISOString(),
+        durationMin: workDuration,
+      });
+    } catch (error) {
+      console.error("Error while saving pomodoro session:", error);
+    } finally {
+      isSavingRef.current = false;
+      workStartedAtRef.current = null;
+    }
+  }, [userId, workDuration]);
+
+  // =========================
+  // effect: 初期化
+  // =========================
+  useEffect(() => {
+    const data = loadTodayPomodoro();
+    setTodayMinutes(data.minutes);
+  }, []);
+
+  // =========================
+  // effect: 雨音と動画の再生制御
+  // =========================
   useEffect(() => {
     const videoElement = videoRef.current;
+
     if (isRunning && mode === "work") {
       void play();
 
@@ -137,17 +237,10 @@ export default function TimerApp() {
     }
   }, [isRunning, mode, play, stop]);
 
-  // リセットボタンのハンドラ
-  const handleReset = () => {
-    didFinishRef.current = false;
-    setIsRunning(false);
-    stop();
-    setTimeLeft({ minutes: mode === "work" ? workDuration : breakDuration, seconds: 0 });
-  };
-
-  // タイマーのカウントダウン処理
+  // =========================
+  // effect: タイマーのカウントダウン
+  // =========================
   useEffect(() => {
-    //タイマーIDを保持する変数
     let intervalId: NodeJS.Timeout;
 
     if (isRunning) {
@@ -160,17 +253,22 @@ export default function TimerApp() {
 
             didFinishRef.current = true;
             setIsRunning(false);
-            stop(); // 雨音を停止
+            stop();
 
             if (mode === "work") {
               addTodayMinutes(workDuration);
+
+              void saveCompletedWorkSession().finally(() => {
+                setRankingRefreshKey((prevKey) => prevKey + 1);
+              });
             }
 
-            void playNotificationSound(); // タイマー終了後に通知音を再生
+            void playNotificationSound();
 
             setTimeout(() => {
               toggleMode();
             }, 100);
+
             return prev;
           }
 
@@ -178,7 +276,10 @@ export default function TimerApp() {
             return { minutes: prev.minutes - 1, seconds: 59 };
           }
 
-          return { ...prev, seconds: prev.seconds - 1 };
+          return {
+            ...prev,
+            seconds: prev.seconds - 1,
+          };
         });
       }, 1000);
     }
@@ -188,7 +289,7 @@ export default function TimerApp() {
         clearInterval(intervalId);
       }
     };
-  }, [isRunning, stop, toggleMode]);
+  }, [isRunning, stop, mode, workDuration, addTodayMinutes, saveCompletedWorkSession, toggleMode]);
 
   return (
     <div className="relative min-h-screen w-full overflow-y-auto bg-[rgb(4,6,18)] text-white">
@@ -197,10 +298,10 @@ export default function TimerApp() {
           <Header />
         </div>
 
-        <div className="mt-6 flex flex-col gap-6 lg:flex-row lg:gap-10 rounded-xl">
+        <div className="mt-6 flex flex-col gap-6 rounded-xl lg:flex-row lg:gap-10">
           {/* 左：動画エリア */}
-          <div className="relative w-full border border-white/10 bg-white/5 lg:w-3/5 lg:self-start rounded-xl">
-            <div className="relative  w-full overflow-hidden sm:h-[360px] lg:h-[520px] rounded-xl">
+          <div className="relative w-full rounded-xl border border-white/10 bg-white/5 lg:w-3/5 lg:self-start">
+            <div className="relative w-full overflow-hidden rounded-xl sm:h-[360px] lg:h-[520px]">
               <video
                 ref={videoRef}
                 src="/top_movie02.mp4"
@@ -213,23 +314,24 @@ export default function TimerApp() {
             </div>
           </div>
 
-          {/* 右：タイマー */}
+          {/* 右：タイマー + ランキング */}
           <div className="w-full lg:w-2/5">
-            <Card className="relative flex flex-col overflow-hidden border-0 bg-gray-700/30 text-white mb-6">
+            <Card className="relative mb-6 flex flex-col overflow-hidden border-0 bg-gray-700/30 text-white">
               <CardHeader className="relative z-10 text-center">
-                <h3 className="text-sm tracking-wide text-white font-semibold">
+                <h3 className="text-sm font-semibold tracking-wide text-white">
                   本日のポモドーロ時間
                 </h3>
-                <p className="text-xl font-semibold"> {formatMinutesText(todayMinutes)}</p>
+                <p className="font-semibold leading-none">{formatMinutesText(todayMinutes)}</p>
               </CardHeader>
             </Card>
 
-            <Card className="relative flex flex-col overflow-hidden border-0 bg-gray-700/30 text-white">
+            <Card className="relative mb-6 flex flex-col overflow-hidden border-0 bg-gray-700/30 text-white">
               <CardHeader className="relative z-10 text-center">
                 <CardTitle className="text-xl font-semibold tracking-wide text-white">
                   {mode === "work" ? "作業時間" : "休憩時間"}
                 </CardTitle>
               </CardHeader>
+
               <CardContent className="relative z-10 -mt-2 flex flex-col items-center gap-6">
                 <TimerDisplay
                   minutes={timeLeft.minutes}
@@ -237,6 +339,7 @@ export default function TimerApp() {
                   mode={mode}
                   isRunning={isRunning}
                 />
+
                 <Controls
                   onStart={handleStart}
                   onReset={handleReset}
@@ -244,6 +347,7 @@ export default function TimerApp() {
                   isRunning={isRunning}
                 />
               </CardContent>
+
               <CardFooter className="relative z-10 mx-auto flex w-full max-w-[260px] flex-col gap-3 text-white">
                 {/* 作業時間の設定 */}
                 <div className="flex items-center justify-between gap-3">
@@ -254,13 +358,14 @@ export default function TimerApp() {
                     <select
                       value={workDuration}
                       onChange={(e) => {
-                        const newDuration = parseInt(e.target.value);
+                        const newDuration = parseInt(e.target.value, 10);
                         setWorkDuration(newDuration);
+
                         if (mode === "work" && !isRunning) {
                           setTimeLeft({ minutes: newDuration, seconds: 0 });
                         }
                       }}
-                      className="h-9 w-full appearance-none rounded-lg border border-white/20 bg-white/10 px-2.5 pr-8 text-center text-sm text-white focus:outline-none focus:ring-2 focus:ring-white/40 font-bold"
+                      className="h-9 w-full appearance-none rounded-lg border border-white/20 bg-white/10 px-2.5 pr-8 text-center text-sm font-bold text-white focus:outline-none focus:ring-2 focus:ring-white/40"
                     >
                       {[5, 10, 15, 25, 30, 45, 60].map((minutes) => (
                         <option key={minutes} value={minutes}>
@@ -284,13 +389,14 @@ export default function TimerApp() {
                     <select
                       value={breakDuration}
                       onChange={(e) => {
-                        const newDuration = parseInt(e.target.value);
+                        const newDuration = parseInt(e.target.value, 10);
                         setBreakDuration(newDuration);
+
                         if (mode === "break" && !isRunning) {
                           setTimeLeft({ minutes: newDuration, seconds: 0 });
                         }
                       }}
-                      className="h-9 w-full appearance-none rounded-lg border border-white/20 bg-white/10 px-2.5 pr-8 text-center text-sm text-white focus:outline-none focus:ring-2 focus:ring-white/40 font-bold"
+                      className="h-9 w-full appearance-none rounded-lg border border-white/20 bg-white/10 px-2.5 pr-8 text-center text-sm font-bold text-white focus:outline-none focus:ring-2 focus:ring-white/40"
                     >
                       {[5, 10, 15].map((minutes) => (
                         <option key={minutes} value={minutes}>
@@ -315,11 +421,15 @@ export default function TimerApp() {
                   </div>
                 </div>
               </CardFooter>
+
               <MetadataUpdater minutes={timeLeft.minutes} seconds={timeLeft.seconds} mode={mode} />
             </Card>
+
+            <AllTimeRankingCard refreshKey={rankingRefreshKey} />
           </div>
         </div>
       </div>
+
       <RefreshSuggestion
         suggestion={refreshSuggestion}
         onClose={() => setRefreshSuggestion(null)}
