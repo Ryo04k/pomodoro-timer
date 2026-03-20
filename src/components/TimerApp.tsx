@@ -11,6 +11,9 @@ import { ChevronDown } from "lucide-react";
 import { playNotificationSound } from "@/utils/sound";
 import { generateRefreshSuggestion } from "@/utils/gemini";
 import { useAudio } from "@/hooks/useAudio";
+import { authClient } from "@/lib/auth-client";
+import { savePomodoroSession } from "@/utils/pomodoro";
+import AllTimeRankingCard from "@/components/RankingCard";
 
 type Mode = "work" | "break";
 
@@ -41,17 +44,47 @@ function saveTodayPomodoro(date: TodayPomodoro) {
   localStorage.setItem(TODAY_POMODORO_KEY, JSON.stringify(date));
 }
 
-function formatMinutesText(totalMinutes: number): string {
+function formatMinutesText(totalMinutes: number) {
   const hours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;
 
-  if (hours === 0) return `${minutes}分`;
-  if (minutes === 0) return `${hours}時間`;
+  if (hours === 0) {
+    return (
+      <span>
+        <span className="text-2xl">{minutes}</span>
+        <span className="ml-0.5 text-xs text-white/65">分</span>
+      </span>
+    );
+  }
 
-  return `${hours}時間${minutes}分`;
+  if (minutes === 0) {
+    return (
+      <span>
+        <span className="text-2xl">{hours}</span>
+        <span className="ml-0.5 text-xs text-white/65">時間</span>
+      </span>
+    );
+  }
+
+  return (
+    <span>
+      <span className="text-2xl">{hours}</span>
+      <span className="ml-0.5 text-xs text-white/65">時間</span>
+      <span className="ml-1 text-2xl">{minutes}</span>
+      <span className="ml-0.5 text-xs text-white/65">分</span>
+    </span>
+  );
 }
 
 export default function TimerApp() {
+  // ランキング更新のトリガー
+  const [rankingRefreshKey, setRankingRefreshKey] = useState(0);
+  console.log(rankingRefreshKey);
+
+  // ユーザーセッションを取得
+  const { data: session } = authClient.useSession();
+  const userId = session?.user?.id ?? null;
+
   // タイマーの実行状態を管理するstate
   const [isRunning, setIsRunning] = useState(false);
 
@@ -113,10 +146,22 @@ export default function TimerApp() {
 
   const didFinishRef = useRef(false);
 
+  const workStartedAtRef = useRef<number | null>(null);
+  const isSavingRef = useRef(false);
+
   //開始/停止ボタンのハンドラ
   const handleStart = () => {
     didFinishRef.current = false;
-    setIsRunning((prev) => !prev);
+
+    setIsRunning((prev) => {
+      const next = !prev;
+
+      if (next && mode === "work" && workStartedAtRef.current === null) {
+        workStartedAtRef.current = Date.now();
+      }
+
+      return next;
+    });
   };
 
   // 雨音と動画の再生制御
@@ -142,8 +187,47 @@ export default function TimerApp() {
     didFinishRef.current = false;
     setIsRunning(false);
     stop();
+
+    if (mode === "work") {
+      workStartedAtRef.current = null;
+    }
+
     setTimeLeft({ minutes: mode === "work" ? workDuration : breakDuration, seconds: 0 });
   };
+
+  const saveCompletedWorkSession = useCallback(async () => {
+    if (!userId) return;
+
+    // 二重保存防止
+    if (isSavingRef.current) return;
+    isSavingRef.current = true;
+
+    try {
+      const endedAtMs = Date.now();
+
+      const startedAtMs = workStartedAtRef.current ?? endedAtMs - workDuration * 60 * 1000;
+
+      const idempotencyKey = `${userId}:${startedAtMs}:${workDuration}`;
+
+      const result = await savePomodoroSession({
+        idempotencyKey,
+        startedAt: new Date(startedAtMs).toISOString(),
+        endedAt: new Date(endedAtMs).toISOString(),
+        durationMin: workDuration,
+      });
+
+      if (!result.ok) {
+        console.error("Failed to save pomodoro session");
+      } else if (result.deduplicated) {
+        console.info("Pomodoro session was deduplicated");
+      }
+    } catch (error) {
+      console.error("Error while saving pomodoro session:", error);
+    } finally {
+      isSavingRef.current = false;
+      workStartedAtRef.current = null;
+    }
+  }, [userId, workDuration]);
 
   // タイマーのカウントダウン処理
   useEffect(() => {
@@ -164,6 +248,9 @@ export default function TimerApp() {
 
             if (mode === "work") {
               addTodayMinutes(workDuration);
+              void saveCompletedWorkSession().finally(() => {
+                setRankingRefreshKey((prev) => prev + 1);
+              });
             }
 
             void playNotificationSound(); // タイマー終了後に通知音を再生
@@ -188,7 +275,7 @@ export default function TimerApp() {
         clearInterval(intervalId);
       }
     };
-  }, [isRunning, stop, toggleMode]);
+  }, [isRunning, stop, toggleMode, addTodayMinutes, saveCompletedWorkSession]);
 
   return (
     <div className="relative min-h-screen w-full overflow-y-auto bg-[rgb(4,6,18)] text-white">
@@ -220,11 +307,11 @@ export default function TimerApp() {
                 <h3 className="text-sm tracking-wide text-white font-semibold">
                   本日のポモドーロ時間
                 </h3>
-                <p className="text-xl font-semibold"> {formatMinutesText(todayMinutes)}</p>
+                <p className="font-semibold leading-none">{formatMinutesText(todayMinutes)}</p>
               </CardHeader>
             </Card>
 
-            <Card className="relative flex flex-col overflow-hidden border-0 bg-gray-700/30 text-white">
+            <Card className="relative flex flex-col overflow-hidden border-0 bg-gray-700/30 text-white mb-6">
               <CardHeader className="relative z-10 text-center">
                 <CardTitle className="text-xl font-semibold tracking-wide text-white">
                   {mode === "work" ? "作業時間" : "休憩時間"}
@@ -317,6 +404,7 @@ export default function TimerApp() {
               </CardFooter>
               <MetadataUpdater minutes={timeLeft.minutes} seconds={timeLeft.seconds} mode={mode} />
             </Card>
+            <AllTimeRankingCard refreshKey={rankingRefreshKey} />
           </div>
         </div>
       </div>
