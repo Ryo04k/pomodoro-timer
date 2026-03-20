@@ -1,4 +1,3 @@
-// src/app/signup/_components/sign-up-form.tsx
 "use client";
 
 import { useTransition } from "react";
@@ -22,15 +21,16 @@ import {
 import { toast } from "sonner";
 import { getErrorMessage } from "@/lib/error-messages";
 import { useRouter } from "next/navigation";
+import { authClient } from "@/lib/auth-client";
+import { ErrorCodes } from "@/types";
 
 export default function SignUpForm() {
-  // ボタン連打防止 & ローディング状態管理用
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
 
   // React Hook Form のセットアップ
   const form = useForm<AuthFormValues>({
-    resolver: zodResolver(signUpSchema), // ← Zod と連携
+    resolver: zodResolver(signUpSchema),
     defaultValues: {
       name: "",
       email: "",
@@ -39,33 +39,36 @@ export default function SignUpForm() {
     },
   });
 
-  // フォーム送信時の処理
   const onSubmit = (values: AuthFormValues) => {
-    // startTransition 内で async を使うと「処理中」状態を持てる
     startTransition(async () => {
       const { name, email, password } = values;
 
       const result = await signUp({ name, email, password });
 
       if (!result.isSuccess) {
-        // エラーコードから日本語メッセージへ変換
         toast.error(getErrorMessage(result.errorCode));
         return;
       }
 
-      toast.success("アカウントを作成しました");
+      const { error } = await authClient.signIn.email({
+        email,
+        password,
+      });
 
-      // Better Auth の仕様に合わせて：
-      // - ここでログイン画面へ飛ばす
-      // - もしくはトップページへ
-      router.push("/login");
+      if (error) {
+        toast.error(getErrorMessage(ErrorCodes.SERVER_ERROR));
+        return;
+      }
+
+      toast.success("アカウントを作成しました");
+      router.push("/");
+      router.refresh();
     });
   };
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
-        {/* ニックネーム */}
         <FormField
           control={form.control}
           name="name"
@@ -84,7 +87,6 @@ export default function SignUpForm() {
           )}
         />
 
-        {/* メールアドレス */}
         <FormField
           control={form.control}
           name="email"
@@ -104,7 +106,6 @@ export default function SignUpForm() {
           )}
         />
 
-        {/* パスワード */}
         <FormField
           control={form.control}
           name="password"
@@ -124,7 +125,6 @@ export default function SignUpForm() {
           )}
         />
 
-        {/* パスワード（確認用） */}
         <FormField
           control={form.control}
           name="confirmPassword"
@@ -144,7 +144,6 @@ export default function SignUpForm() {
           )}
         />
 
-        {/* 送信ボタン */}
         <Button
           type="submit"
           disabled={isPending}
