@@ -1,36 +1,64 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# RainTimer | 雨音・黒猫と過ごすポモドーロタイマー
 
-## Getting Started
+サービスURL：https://rain-timer.vercel.app/
 
-First, run the development server:
+<br>
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+# サービス概要
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+RainTimer は、**雨音とポモドーロタイマーで集中力と生産性を高めるアプリケーション**です。<br>
+作業と休憩を切り替えながら、作業時間の積み上げを可視化できます。
+<br><br>
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+# このサービスへの思い・作りたい理由
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+私自身、作業時にはYouTubeで自然音やポモドーロ用の動画を流しながら取り組む中で、<br>
+気づいたら動画が停止してしまっていることや、都度操作が必要になることに煩わしさを感じていました。<br>
 
-## Learn More
+また、動画の場合、作業時間を記録する仕組みがないため、<br>
+「どれだけ積み上げられているのか」が分からず、達成感を得られないことから、<br>
+学習のモチベーションが下がってしまうという課題もありました。<br>
 
-To learn more about Next.js, take a look at the following resources:
+こうした背景から、<br>
+「集中したいが、無音だと落ち着かない」<br>
+「継続したいが、達成感を得られにくい」<br>
+という課題を解決するために、<br>
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+**ポモドーロタイマー・環境音・作業時間の記録**を一元化したアプリを制作しました。<br>
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+また、ゲーミフィケーション要素としてランキング機能を取り入れることで、<br>
+ユーザーの達成感や適度な競争心を生み出し、より継続しやすい体験を作りました。
+<br><br>
 
-## Deploy on Vercel
+# 機能一覧
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- 認証
+  - メールアドレス / パスワードによる新規登録・ログイン・ログアウト
+- ポモドーロタイマー
+  - 作業時間設定（`5 / 10 / 15 / 25 / 30 / 45 / 60` 分）
+  - 休憩時間設定（`5 / 10 / 15` 分）
+  - 自動開始トグル
+  - 作業/休憩の自動切り替え
+  - 通知音再生
+- BGM / UI
+  - 雨音再生
+  - 動画再生
+  - 音量調整
+- AI提案
+  - 作業完了時に簡易的なストレッチを提案
+- 記録
+  - 本日の作業時間
+  - ユーザーの累積ポモドーロ時間をランキング表示
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+<br><br>
+
+# 使用技術
+
+| カテゴリ       | 技術                                            |
+| -------------- | ----------------------------------------------- |
+| フロントエンド | Next.js 15 (App Router) / React 19 / TypeScript |
+| UI             | Tailwind CSS / shadcn/ui / Lucide               |
+| バックエンド   | Next.js Route Handlers / Server Actions         |
+| 認証           | better-auth                                     |
+| データベース   | Supabase （PostgreSQL） / Prisma                |
+| API            | Google Gemini                                   |
