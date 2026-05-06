@@ -1,7 +1,7 @@
 "use client";
-import { LogIn, LogOut, Volume2 } from "lucide-react";
+import { LogIn, LogOut, Volume2, VolumeOff } from "lucide-react";
 import VolumeDialog from "@/components/VolumeDialog";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { authClient } from "@/lib/auth-client";
@@ -16,6 +16,22 @@ import {
 
 export default function Header() {
   const [open, setOpen] = useState(false);
+
+  const [volume, setVolume] = useState<number>(() => {
+    if (typeof window === "undefined") return 0.2;
+
+    const savedVolume = localStorage.getItem("timer-volume");
+    const parsedVolume = savedVolume ? parseFloat(savedVolume) : 0.2;
+
+    if (!Number.isFinite(parsedVolume)) return 0.2;
+
+    return Math.max(0, Math.min(1, parsedVolume));
+  });
+
+  useEffect(() => {
+    localStorage.setItem("timer-volume", String(volume));
+    window.dispatchEvent(new CustomEvent("timer-volume-change", { detail: volume }));
+  }, [volume]);
 
   //ログインしているユーザーの情報を取得
   const { data: session } = authClient.useSession();
@@ -41,7 +57,7 @@ export default function Header() {
           className="rounded-full p-2 text-white transition-colors duration-200 bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 hover:bg-white/20"
           aria-label="音量を調整"
         >
-          <Volume2 className="h-5 w-5" />
+          {volume === 0 ? <VolumeOff className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
         </button>
 
         {session?.user ? (
@@ -94,8 +110,12 @@ export default function Header() {
             </Link>
           </div>
         )}
-
-        <VolumeDialog open={open} onOpenChange={setOpen} />
+        <VolumeDialog
+          open={open}
+          onOpenChange={setOpen}
+          volume={volume}
+          onVolumeChange={setVolume}
+        />
       </div>
     </header>
   );
